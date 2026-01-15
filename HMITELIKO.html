@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Athens Smart Bus - Final AI Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Animations */
+        @keyframes scan-move { 0% { top: 0%; opacity: 0.5; } 50% { top: 100%; opacity: 1; } 100% { top: 0%; opacity: 0.5; } }
+        .scanner-beam { position: absolute; left: 0; width: 100%; height: 4px; background: linear-gradient(to right, transparent, #ef4444, transparent); animation: scan-move 2s infinite linear; z-index: 10; }
+
+        @keyframes pulse-zone { 0% { box-shadow: inset 0 0 0 0px rgba(59, 130, 246, 0.4); } 70% { box-shadow: inset 0 0 0 10px rgba(59, 130, 246, 0); } 100% { box-shadow: inset 0 0 0 0px rgba(59, 130, 246, 0); } }
+        .zone-active { background-color: #dbeafe !important; border-color: #3b82f6 !important; color: #1e40af !important; animation: pulse-zone 2s infinite; }
+
+        .tab-btn.active { color: #2563eb; border-bottom: 2px solid #2563eb; background-color: #f1f5f9; }
+        .filter-btn.active-filter { background-color: #2563eb; color: white; border-color: #2563eb; }
+        
+        #login-screen { background-image: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
+        .glass-panel { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+
+        .dash-card { @apply bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition duration-300; }
+        
+        /* Alert Animations */
+        .alert-flash { animation: flash-red 1s infinite; }
+        @keyframes flash-red { 0%, 100% { background-color: #fee2e2; border-color: red; } 50% { background-color: white; border-color: transparent; } }
+
+        /* Shop Status Styles */
+        .shop-unavailable { filter: grayscale(100%); opacity: 0.6; pointer-events: none; position: relative; }
+        .shop-unavailable::after { content: "ΜΗ ΔΙΑΘΕΣΙΜΟ"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; font-weight: bold; border-radius: 5px; font-size: 12px; z-index: 50; }
+
+        /* Chat Styles */
+        .chat-msg { max-width: 80%; padding: 8px 12px; border-radius: 12px; margin-bottom: 8px; font-size: 0.9rem; }
+        .chat-user { background-color: #2563eb; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .chat-ai { background-color: #f1f5f9; color: #334155; align-self: flex-start; border-bottom-left-radius: 2px; border: 1px solid #e2e8f0; }
+        .typing-dot { width: 6px; height: 6px; background-color: #94a3b8; border-radius: 50%; display: inline-block; animation: typing 1.4s infinite ease-in-out both; }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden text-slate-800 relative">
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="absolute inset-0 z-[100] flex flex-col items-center justify-center p-4">
+        <div class="glass-panel p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center text-white relative overflow-hidden">
+            <div class="bg-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/50 relative z-10">
+                <i class="fa-solid fa-bus text-3xl"></i>
+            </div>
+            <h1 class="text-2xl font-bold mb-1 relative z-10">Smart Tourist Bus</h1>
+            <p class="text-slate-300 text-xs mb-8 relative z-10">Integrated Interaction System v3.0 AI</p>
+            
+            <!-- Main Login Buttons -->
+            <div id="login-main" class="space-y-3 relative z-10">
+                <button onclick="app.login('passenger')" class="w-full bg-white text-slate-900 font-bold py-3 rounded-xl hover:bg-slate-100 transition flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-suitcase-rolling text-blue-600"></i> Είσοδος Επιβάτη
+                </button>
+                <button onclick="app.showPinPad()" class="w-full bg-slate-700/50 border border-slate-500 text-white font-bold py-3 rounded-xl hover:bg-slate-700 transition flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-id-card"></i> Είσοδος Προσωπικού
+                </button>
+            </div>
+
+            <!-- PIN Pad for Staff -->
+            <div id="login-pin" class="hidden relative z-10">
+                <p class="text-sm mb-4">Εισάγετε 5-ψήφιο Κωδικό</p>
+                <div class="flex justify-center gap-2 mb-6">
+                    <input type="password" id="pin-input" readonly class="w-32 bg-slate-800/50 border border-slate-600 rounded text-center text-2xl tracking-widest py-2 focus:outline-none text-white placeholder-slate-600" placeholder="•••••">
+                </div>
+                <div class="grid grid-cols-3 gap-3 mb-4">
+                    <button onclick="app.addPin('1')" class="bg-white/10 hover:bg-white/20 p-3 rounded-lg font-bold text-lg">1</button>
+                    <button onclick="app.addPin('2')" class="bg-white/10 hover:bg-white/20 p-3 rounded-lg font-bold text-lg">2</button>
+                    <button onclick="app.addPin('3')" class="bg-white/10 hover:bg-white/20 p-3 rounded-lg font-bold text-lg">3</button>
+                    <button onclick="app.addPin('4')" class="bg-white/10 hover:bg-white/20 p-3 rounded-lg font-bold text-lg">4</button>
+                    <button onclick="app.addPin('5')" class="bg-white/10 hover:bg-white/20 p-3 rounded-lg font-bold text-lg">5</button>
+                    <button onclick="app.addPin('6')" class="bg-white/10 hover:bg-white/20 p-3 rounded-lg font-bold text-lg">6</button>
+                    <button onclick="app.addPin('7')" class="bg-white/10 hover:bg-white/20 p-3 rounded-lg font-bold text-lg">7</button>
+                    <button onclick="app.addPin('8')" class="bg-white/10 hover:bg-white/20 p-3 rounded-lg font-bold text-lg">8</button>
+                    <button onclick="app.addPin('9')" class="bg-white/10 hover:bg-white/20 p-3 rounded-lg font-bold text-lg">9</button>
+                    <button onclick="app.clearPin()" class="bg-red-500/20 hover:bg-red-500/40 text-red-200 p-3 rounded-lg"><i class="fa-solid fa-delete-left"></i></button>
+                    <button onclick="app.addPin('0')" class="bg-white/10 hover:bg-white/20 p-3 rounded-lg font-bold text-lg">0</button>
+                    <button onclick="app.submitPin()" class="bg-blue-600 hover:bg-blue-500 text-white p-3 rounded-lg"><i class="fa-solid fa-check"></i></button>
+                </div>
+                <button onclick="app.hidePinPad()" class="text-xs text-slate-400 hover:text-white underline">Ακύρωση</button>
+            </div>
+            
+            <p class="mt-6 text-[10px] text-slate-400">Project: Αλληλεπίδραση Ανθρώπου-Υπολογιστή 2025-26</p>
+        </div>
+    </div>
+
+    <div id="app-content" class="h-full flex flex-col hidden">
+        
+        <!-- HEADER -->
+        <header class="bg-white border-b border-slate-200 px-4 py-2 flex flex-col gap-2 shadow-sm z-30 shrink-0">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-blue-600 w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-blue-200 shadow-lg"><i class="fa-solid fa-bus text-sm"></i></div>
+                    <div>
+                        <h1 class="text-sm font-bold leading-tight tracking-tight">Athens Smart Bus</h1>
+                        <p id="user-role-display" class="text-[10px] font-bold text-blue-600 uppercase">GUEST</p>
+                    </div>
+                </div>
+                <div class="text-right flex items-center gap-3">
+                    <div id="next-stop-display" class="hidden md:block text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">Επόμενη: <span class="text-blue-600">...</span></div>
+                    <div id="live-clock" class="font-mono text-sm font-bold text-slate-700">00:00</div>
+                    <button onclick="location.reload()" class="text-xs text-red-500 hover:text-red-700"><i class="fa-solid fa-power-off"></i></button>
+                </div>
+            </div>
+            <div class="bg-slate-50 rounded-lg border border-slate-200 p-2 flex items-center justify-between overflow-hidden relative h-12">
+                <div class="absolute top-1/2 left-0 w-full h-0.5 bg-slate-200 -z-0"></div>
+                <div id="route-visualizer" class="w-full flex justify-between items-center z-10 px-2"></div>
+            </div>
+        </header>
+
+        <!-- NAV: PASSENGER -->
+        <nav id="nav-passenger" class="bg-white border-b border-slate-100 flex shrink-0 z-20 hidden">
+            <button onclick="app.switchTab('cafe')" id="tab-cafe" class="tab-btn active flex-1 py-3 font-semibold text-slate-500 hover:text-blue-600 transition flex items-center justify-center gap-2 text-sm"><i class="fa-solid fa-utensils"></i> Delivery</button>
+            <button onclick="app.switchTab('tour')" id="tab-tour" class="tab-btn flex-1 py-3 font-semibold text-slate-500 hover:text-blue-600 transition flex items-center justify-center gap-2 text-sm"><i class="fa-solid fa-eye"></i> Θέα & Πλοήγηση</button>
+            <button onclick="app.switchTab('ai')" id="tab-ai" class="tab-btn flex-1 py-3 font-semibold text-slate-500 hover:text-blue-600 transition flex items-center justify-center gap-2 text-sm relative">
+                <i class="fa-solid fa-wand-magic-sparkles text-purple-500"></i> Gemini AI
+                <span class="absolute top-1 right-2 w-2 h-2 bg-purple-500 rounded-full animate-ping"></span>
+            </button>
+        </nav>
+
+        <!-- NAV: DRIVER -->
+        <nav id="nav-driver" class="bg-white border-b border-slate-100 flex shrink-0 z-20 hidden">
+            <button onclick="app.switchTab('systems')" id="tab-systems" class="tab-btn active flex-1 py-3 font-semibold text-slate-500 hover:text-blue-600 transition flex items-center justify-center gap-2 text-sm"><i class="fa-solid fa-gauge-high"></i> Συστήματα & HVAC</button>
+            <button onclick="app.switchTab('vacuum')" id="tab-vacuum" class="tab-btn flex-1 py-3 font-semibold text-slate-500 hover:text-blue-600 transition flex items-center justify-center gap-2 text-sm"><i class="fa-solid fa-robot"></i> Καθαρισμός</button>
+        </nav>
+
+        <main class="flex-1 overflow-hidden relative bg-slate-50">
+
+            <!-- TAB 1: CAFE / SHOPS -->
+            <section id="view-cafe" class="h-full flex flex-col md:flex-row overflow-hidden relative hidden">
+                <div class="flex-1 flex flex-col overflow-hidden h-full relative">
+                    <div class="p-4 pb-2 shrink-0">
+                        <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar" id="filters-container">
+                            <button onclick="app.filterShops('all')" class="filter-btn active-filter bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap hover:bg-slate-50 transition shadow-sm">🍔 Όλα</button>
+                            <button onclick="app.filterShops('Καφές')" class="filter-btn bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap hover:bg-slate-50 transition shadow-sm">☕ Καφές</button>
+                            <button onclick="app.filterShops('Street Food')" class="filter-btn bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap hover:bg-slate-50 transition shadow-sm">🍕 Φαγητό</button>
+                            <button onclick="app.filterShops('Γλυκά')" class="filter-btn bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap hover:bg-slate-50 transition shadow-sm">🍦 Γλυκά</button>
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-4 pt-0">
+                        <div id="shops-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-20"></div>
+                    </div>
+                    
+                    <div id="menu-view" class="absolute inset-0 bg-white z-20 hidden flex flex-col transform transition-transform duration-300 translate-x-0">
+                        <div class="h-32 bg-slate-800 relative shrink-0 overflow-hidden">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                            <button onclick="app.closeMenu()" class="absolute top-4 left-4 bg-white/20 hover:bg-white/40 backdrop-blur-md text-white w-8 h-8 rounded-full flex items-center justify-center transition"><i class="fa-solid fa-arrow-left"></i></button>
+                            <div class="absolute bottom-4 left-4 text-white"><h2 id="menu-title" class="text-2xl font-bold">Shop</h2><p id="menu-subtitle" class="text-xs opacity-90">Category</p></div>
+                        </div>
+                        <div id="menu-items-grid" class="flex-1 overflow-y-auto p-4 bg-slate-50 space-y-3 pb-24"></div>
+                    </div>
+                </div>
+                
+                <div class="w-full md:w-80 bg-white border-l border-slate-200 shadow-xl z-30 flex flex-col h-1/3 md:h-full relative shrink-0">
+                    <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-white"><h3 class="font-bold text-slate-800 flex items-center gap-2"><i id="cart-icon" class="fa-solid fa-basket-shopping text-blue-600"></i> Καλάθι</h3><span id="cart-count" class="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-0.5 rounded">0</span></div>
+                    <div id="cart-items" class="flex-1 overflow-y-auto p-4 space-y-4 bg-white"><div class="text-center text-slate-300 text-sm mt-10">Άδειο</div></div>
+                    <div class="p-4 bg-slate-50 border-t border-slate-200">
+                        <div class="flex justify-between items-center mb-4"><span class="text-sm text-slate-500">Σύνολο</span><span id="cart-total" class="text-xl font-bold text-slate-800">0.00€</span></div>
+                        <button onclick="app.initiateCheckout()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition">Ολοκλήρωση</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: TOUR / VIEW -->
+            <section id="view-tour" class="h-full hidden flex flex-col overflow-hidden relative bg-slate-100 p-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
+                    <div class="bg-black rounded-2xl overflow-hidden shadow-lg relative flex flex-col group">
+                        <div class="absolute top-4 left-4 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded animate-pulse z-10">LIVE CAMERA</div>
+                        <div class="flex-1 bg-[url('https://images.unsplash.com/photo-1629816686150-1375373322d8?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center transition duration-700 transform hover:scale-105"></div>
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-6">
+                            <h3 class="text-white font-bold text-lg"><i class="fa-solid fa-eye mr-2"></i> Θέα Οδηγού</h3>
+                            <p class="text-slate-300 text-xs mt-1">Απολαύστε τη διαδρομή ανεμπόδιστα μέσα από τις κάμερες του cockpit.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col gap-4">
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex-1 relative overflow-hidden flex flex-col justify-center items-start">
+                            <div class="absolute top-0 right-0 p-4 opacity-10"><i class="fa-solid fa-map-location-dot text-9xl text-blue-600"></i></div>
+                            
+                            <span class="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-1 rounded mb-3">ΕΠΟΜΕΝΗ ΣΤΑΣΗ</span>
+                            <h2 id="landmark-name" class="text-3xl font-black text-slate-800 mb-2">Φόρτωση...</h2>
+                            <p id="landmark-desc" class="text-slate-600 leading-relaxed text-sm mb-6 max-w-sm">Το σύστημα GPS εντοπίζει τη θέση σας...</p>
+                            
+                            <button onclick="app.activateWalkingMode()" class="w-full bg-slate-900 text-white px-6 py-4 rounded-xl text-sm font-bold hover:bg-slate-800 transition shadow-lg flex items-center justify-center gap-3 group">
+                                <span class="bg-white/20 p-2 rounded-full"><i class="fa-solid fa-person-walking"></i></span>
+                                <div class="text-left">
+                                    <div class="uppercase text-[10px] text-slate-400">Κατεβαινετε εδω;</div>
+                                    <div>Ενεργοποίηση Walking Mode</div>
+                                </div>
+                                <i class="fa-solid fa-chevron-right ml-auto group-hover:translate-x-1 transition"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: GEMINI AI ASSISTANT -->
+            <section id="view-ai" class="h-full hidden flex flex-col overflow-hidden relative bg-white">
+                <div class="bg-gradient-to-r from-blue-600 to-purple-600 p-4 text-white flex justify-between items-center shrink-0">
+                    <div>
+                        <h2 class="font-bold flex items-center gap-2"><i class="fa-solid fa-wand-magic-sparkles"></i> Gemini Assistant</h2>
+                        <p class="text-xs text-blue-100">Ο προσωπικός σας ξεναγός τεχνητής νοημοσύνης</p>
+                    </div>
+                    <div class="bg-white/10 p-2 rounded-lg backdrop-blur-sm">
+                        <i class="fa-solid fa-brain"></i>
+                    </div>
+                </div>
+                
+                <div id="chat-history" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-slate-50">
+                    <div class="chat-msg chat-ai">
+                        <div class="font-bold text-xs text-purple-600 mb-1">Gemini AI</div>
+                        Γειά σας! Είμαι ο ψηφιακός βοηθός του λεωφορείου. Ρωτήστε με για τη διαδρομή, τα αξιοθέατα ή τον καιρό!
+                    </div>
+                </div>
+
+                <div class="p-3 border-t border-slate-200 bg-white flex gap-2">
+                    <input type="text" id="chat-input" placeholder="Ρωτήστε κάτι (π.χ. 'Τι βλέπω;', 'Πρότεινε φαγητό')..." class="flex-1 bg-slate-100 border-0 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none" onkeypress="if(event.key==='Enter') app.sendChatMessage()">
+                    <button onclick="app.sendChatMessage()" class="bg-purple-600 text-white w-12 rounded-xl hover:bg-purple-700 transition flex items-center justify-center"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
+                
+                <!-- Quick Prompts -->
+                <div class="p-2 bg-slate-100 flex gap-2 overflow-x-auto border-t border-slate-200">
+                    <button onclick="app.sendChatMessage('Τι αξιοθέατο είναι κοντά;')" class="whitespace-nowrap bg-white text-slate-600 text-xs px-3 py-1.5 rounded-full border border-slate-200 hover:border-purple-400">🏛️ Κοντινά αξιοθέατα</button>
+                    <button onclick="app.sendChatMessage('Πες μου για την Ακρόπολη')" class="whitespace-nowrap bg-white text-slate-600 text-xs px-3 py-1.5 rounded-full border border-slate-200 hover:border-purple-400">📜 Ιστορία</button>
+                    <button onclick="app.sendChatMessage('Τι καιρό κάνει;')" class="whitespace-nowrap bg-white text-slate-600 text-xs px-3 py-1.5 rounded-full border border-slate-200 hover:border-purple-400">🌤️ Καιρός</button>
+                    <button onclick="app.sendChatMessage('Έχεις κάποια προσφορά;')" class="whitespace-nowrap bg-white text-slate-600 text-xs px-3 py-1.5 rounded-full border border-slate-200 hover:border-purple-400">🏷️ Προσφορές</button>
+                </div>
+            </section>
+
+            <!-- TAB 4: DRIVER SYSTEMS & HVAC -->
+            <section id="view-systems" class="h-full hidden flex flex-col p-4 gap-4 overflow-y-auto bg-slate-50">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-xl font-bold text-slate-800">Κέντρο Ελέγχου Λεωφορείου</h2>
+                    <span class="text-xs bg-emerald-100 text-emerald-700 font-bold px-2 py-1 rounded">SYSTEMS ONLINE</span>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Safety Monitor -->
+                    <div class="dash-card border-l-4 border-l-emerald-500 relative overflow-hidden" id="driving-assist-card">
+                        <div class="flex justify-between items-start mb-4">
+                            <div><h3 class="font-bold text-slate-700">Βοηθός Οδήγησης</h3><p class="text-xs text-slate-500">AI Safety Monitor</p></div>
+                            <i class="fa-solid fa-shield-halved text-2xl text-emerald-500"></i>
+                        </div>
+                        <div class="space-y-3 relative z-10">
+                            <div class="flex justify-between items-center text-sm bg-slate-50 p-2 rounded"><span>Lane Assist</span> <span class="text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> ACTIVE</span></div>
+                            <div class="flex justify-between items-center text-sm bg-slate-50 p-2 rounded"><span>Speed Limit</span> <span class="font-mono font-bold">50 km/h</span></div>
+                            <div id="driver-alert-box" class="bg-slate-100 border border-slate-200 p-3 rounded-lg text-xs text-center text-slate-500 font-bold transition-colors">
+                                <i class="fa-solid fa-face-smile text-lg mb-1 block"></i> Κατάσταση Οδηγού: Κανονική
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- HVAC / SMART CLIMATE -->
+                    <div class="dash-card relative overflow-hidden">
+                        <div class="flex justify-between items-start mb-2">
+                            <div><h3 class="font-bold text-slate-700">Έξυπνος Κλιματισμός</h3><p class="text-xs text-slate-500">Cabin: <span id="cabin-temp">24°C</span></p></div>
+                            <i id="fan-icon" class="fa-solid fa-fan text-2xl text-blue-400 fa-spin" style="animation-duration: 3s;"></i>
+                        </div>
+                        
+                        <!-- Standard Controls -->
+                        <div class="flex items-center justify-between bg-slate-50 p-2 rounded-lg mb-3">
+                            <button onclick="driver.adjustTemp(-1)" class="w-10 h-10 bg-white rounded shadow text-blue-500 hover:bg-blue-50 text-lg font-bold">-</button>
+                            <span id="target-temp" class="text-2xl font-bold text-slate-700">22°C</span>
+                            <button onclick="driver.adjustTemp(1)" class="w-10 h-10 bg-white rounded shadow text-red-500 hover:bg-red-50 text-lg font-bold">+</button>
+                        </div>
+
+                        <!-- Eco Logic -->
+                        <div class="bg-blue-50 rounded-lg p-3 border border-blue-100">
+                            <h4 class="text-xs font-bold text-blue-800 mb-2 uppercase flex items-center gap-1"><i class="fa-solid fa-leaf"></i> Εξοικονομηση Ενεργειας</h4>
+                            <p class="text-[10px] text-slate-500 mb-2 leading-tight">Ο υπολογιστής διαχειρίζεται αυτόματα την ψύξη/θέρμανση για βέλτιστη απόδοση.</p>
+                            
+                            <button id="btn-eco-ac" onclick="driver.toggleEcoMode()" class="w-full py-2 bg-white border border-blue-200 text-blue-600 text-xs font-bold rounded shadow-sm hover:bg-blue-100 transition flex justify-between px-3 items-center">
+                                <span><i class="fa-solid fa-power-off"></i> ECO Mode</span>
+                                <span id="eco-status">OFF</span>
+                            </button>
+                            
+                            <div id="energy-savings-display" class="hidden mt-2 text-center bg-emerald-100 text-emerald-800 text-xs font-bold p-1 rounded animate-pulse">
+                                Εξοικονόμηση: 0.0 kWh
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Roof & PV -->
+                    <div class="dash-card bg-gradient-to-br from-slate-800 to-slate-900 text-white border-0">
+                        <div class="flex justify-between items-start mb-4">
+                            <div><h3 class="font-bold">Ενέργεια & Οροφή</h3><p class="text-[10px] text-slate-400">Soft PV Panels: <span class="text-emerald-400">ONLINE</span></p></div>
+                            <i class="fa-solid fa-solar-panel text-2xl text-yellow-400"></i>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div class="text-center p-2 bg-white/10 rounded-lg backdrop-blur-sm">
+                                <div class="text-[9px] text-slate-300 uppercase">Παραγωγη</div>
+                                <div id="pv-prod" class="text-lg font-mono font-bold text-emerald-300">12.4 kW</div>
+                            </div>
+                            <div class="text-center p-2 bg-white/10 rounded-lg backdrop-blur-sm">
+                                <div class="text-[9px] text-slate-300 uppercase">Καταναλωση</div>
+                                <div id="pv-cons" class="text-lg font-mono font-bold text-red-300">8.2 kW</div>
+                            </div>
+                        </div>
+                        <button onclick="driver.toggleRoof()" id="btn-roof" class="w-full py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-arrow-up-from-bracket"></i> <span>ΑΝΟΙΓΜΑ ΟΡΟΦΗΣ</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 5: VACUUM CLEANING -->
+            <section id="view-vacuum" class="h-full hidden flex flex-col p-4 gap-4 overflow-hidden bg-slate-50 relative">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
+                    <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100"><div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Κατασταση</div><div id="vac-status-text" class="text-base font-bold text-slate-700 truncate">💤 Αναμονή</div></div>
+                    <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100"><div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Χρονος</div><div class="flex items-center gap-2"><i class="fa-regular fa-clock text-blue-500"></i><span id="timer-text" class="text-lg font-bold text-slate-800 font-mono">--:--</span></div></div>
+                    <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden group"><div class="flex justify-between items-center mb-1"><div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Καδος</div><span id="bin-text" class="text-xs font-bold text-orange-600">0%</span></div><div class="w-full bg-slate-100 rounded-full h-2"><div id="bin-bar" class="bg-orange-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div></div><div id="bin-full-warning" class="absolute inset-0 bg-red-50/95 hidden flex items-center justify-center text-red-600 font-bold text-xs border-2 border-red-100 rounded-xl">FULL - EMPTYING...</div></div>
+                    <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100"><div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Μπαταρια</div><div class="flex items-center gap-2"><div class="w-full bg-slate-100 rounded-full h-2"><div id="battery-bar" class="bg-emerald-500 h-2 rounded-full transition-all duration-500" style="width: 100%"></div></div><span id="battery-text" class="text-xs font-bold text-emerald-600">100%</span></div></div>
+                </div>
+
+                <div class="flex-1 flex flex-col lg:flex-row gap-4 overflow-hidden">
+                    <div class="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden flex flex-col">
+                        <div class="p-3 border-b border-slate-50 flex justify-between items-center"><h3 class="font-bold text-slate-700 text-sm flex items-center gap-2"><i class="fa-solid fa-map text-slate-400"></i> Κάτοψη Λεωφορείου</h3></div>
+                        <div class="flex-1 relative bg-slate-50/50 flex items-center justify-center p-4">
+                            <div class="w-full max-w-sm h-[300px] border-4 border-slate-300 bg-white rounded-[40px] relative flex flex-col shadow-xl overflow-hidden">
+                                <div class="h-14 bg-slate-100 border-b-2 border-slate-200 flex items-center justify-center"><span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-white px-2 py-1 rounded border border-slate-200 shadow-sm">Cockpit</span></div>
+                                <div class="flex-1 flex relative bg-slate-50">
+                                    <div onclick="app.toggleZone('left')" id="zone-left" class="flex-1 border-r border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-blue-50 transition duration-200 group relative overflow-hidden"><i class="fa-solid fa-couch text-2xl text-slate-300 group-hover:text-blue-300 z-10"></i><span class="text-[10px] font-bold text-slate-400 group-hover:text-blue-600 z-10">Αριστερά (15s)</span></div>
+                                    <div onclick="app.toggleZone('aisle')" id="zone-aisle" class="w-16 bg-white border-r border-dashed border-slate-200 flex items-center justify-center cursor-pointer hover:bg-blue-50 transition duration-200 relative"><span class="rotate-90 text-[10px] font-bold text-slate-300 tracking-[0.2em] whitespace-nowrap group-hover:text-blue-600 z-10">ΔΙΑΔΡΟΜΟΣ (10s)</span></div>
+                                    <div onclick="app.toggleZone('right')" id="zone-right" class="flex-1 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-blue-50 transition duration-200 group relative overflow-hidden"><i class="fa-solid fa-couch text-2xl text-slate-300 group-hover:text-blue-300 z-10"></i><span class="text-[10px] font-bold text-slate-400 group-hover:text-blue-600 z-10">Δεξιά (15s)</span></div>
+                                    
+                                    <div id="robot-unit" class="absolute w-12 h-12 bg-slate-800 rounded-full border-2 border-emerald-400 shadow-2xl flex items-center justify-center text-white z-20 hidden top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-1000 ease-in-out">
+                                        <i class="fa-solid fa-robot fa-spin text-sm"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="w-full lg:w-80 flex flex-col gap-4">
+                        <div class="bg-white rounded-xl shadow-sm p-4 border border-slate-100">
+                            <h3 class="font-bold text-slate-700 mb-3 text-sm">Πίνακας Ελέγχου</h3>
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <button onclick="app.startCleaning()" id="btn-start" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl shadow-emerald-100 shadow-lg flex items-center justify-center gap-2 transition text-sm"><i class="fa-solid fa-play"></i> Start</button>
+                                <button onclick="app.stopCleaning()" id="btn-stop" class="bg-slate-100 text-slate-400 font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition cursor-not-allowed text-sm" disabled><i class="fa-solid fa-stop"></i> Stop</button>
+                            </div>
+                            <button onclick="app.manualEmptyBin()" id="btn-empty" class="w-full bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-100 font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition text-xs mb-2"><i class="fa-solid fa-trash-can-arrow-up"></i> Χειροκίνητο Άδειασμα</button>
+                            <button onclick="app.simulateObjectFound()" class="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 border border-purple-200 font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition text-xs"><i class="fa-solid fa-gem"></i> Sim: Εύρεση Αντικειμένου</button>
+                        </div>
+                        <div class="flex-1 bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col overflow-hidden min-h-[150px]">
+                            <div class="p-3 border-b border-slate-50 bg-slate-50 flex justify-between items-center"><h3 class="font-bold text-slate-700 text-xs uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-box-open text-purple-500"></i> Lost & Found</h3><span id="found-badge" class="bg-purple-500 text-white text-[10px] font-bold px-1.5 rounded-full">0</span></div>
+                            <div id="found-items-list" class="flex-1 overflow-y-auto p-2 space-y-2 bg-slate-50/50"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- MODALS -->
+        <div id="walking-mode-modal" class="fixed inset-0 bg-slate-900 z-[90] hidden flex flex-col">
+            <div class="bg-slate-800 p-4 text-white flex justify-between items-center shadow-lg shrink-0 border-b border-slate-700">
+                <div>
+                    <h2 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-person-walking text-blue-400"></i> Walking Mode</h2>
+                    <p class="text-[10px] text-slate-400">Πλοήγηση σε αξιοθέατα & συνεργάτες</p>
+                </div>
+                <button onclick="app.closeWalkingMode()" class="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-full text-xs font-bold border border-white/10 transition">ΕΠΙΣΤΡΟΦΗ ΣΤΟ ΛΕΩΦΟΡΕΙΟ</button>
+            </div>
+            
+            <div class="flex-1 relative bg-slate-100 overflow-hidden flex flex-col md:flex-row">
+                <div class="flex-1 relative bg-slate-200 h-1/2 md:h-full">
+                    <iframe id="google-map-frame" class="w-full h-full grayscale hover:grayscale-0 transition duration-700" frameborder="0" style="border:0" allowfullscreen></iframe>
+                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none flex flex-col items-center">
+                         <div class="w-16 h-16 bg-blue-500/20 rounded-full animate-ping absolute"></div>
+                         <div class="w-4 h-4 bg-blue-600 border-2 border-white rounded-full shadow-lg relative z-10"></div>
+                         <div class="bg-white px-2 py-1 rounded shadow text-[10px] font-bold mt-2 text-slate-700">Εσείς είστε εδώ</div>
+                    </div>
+                </div>
+
+                <div class="w-full md:w-80 bg-white shadow-xl z-10 flex flex-col h-1/2 md:h-full">
+                    <div class="p-4 bg-blue-600 text-white">
+                        <h3 class="font-bold text-lg" id="wm-stop-name">Ακρόπολη</h3>
+                        <p class="text-blue-100 text-xs">Ανακαλύψτε την περιοχή</p>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-4 space-y-3">
+                        <div class="bg-orange-50 p-3 rounded-xl border border-orange-100 flex gap-3 items-center">
+                            <div class="bg-orange-100 w-10 h-10 rounded-full flex items-center justify-center text-orange-600"><i class="fa-solid fa-utensils"></i></div>
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm">Συνεργάτες Φαγητού</h4>
+                                <p class="text-[10px] text-slate-500">Δείξτε το εισιτήριο για έκπτωση</p>
+                            </div>
+                        </div>
+                         <div class="bg-purple-50 p-3 rounded-xl border border-purple-100 flex gap-3 items-center">
+                            <div class="bg-purple-100 w-10 h-10 rounded-full flex items-center justify-center text-purple-600"><i class="fa-solid fa-camera"></i></div>
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm">Αξιοθέατα</h4>
+                                <p class="text-[10px] text-slate-500">Ιστορικά σημεία ενδιαφέροντος</p>
+                            </div>
+                        </div>
+                        <hr class="border-slate-100">
+                        <div class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">Κοντινα</div>
+                        <div class="space-y-2" id="wm-poi-list">
+                            </div>
+                    </div>
+                    <div class="p-4 border-t border-slate-100">
+                        <a id="ext-map-link" href="#" target="_blank" class="block w-full text-center bg-blue-50 text-blue-600 font-bold py-3 rounded-xl hover:bg-blue-100 transition text-sm">
+                            <i class="fa-brands fa-google"></i> Άνοιγμα Google Maps
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="product-modal" class="fixed inset-0 bg-slate-900/40 z-[80] hidden flex items-center justify-center backdrop-blur-sm"><div class="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 relative"><button onclick="document.getElementById('product-modal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400"><i class="fa-solid fa-xmark"></i></button><h3 id="pm-title" class="text-xl font-bold mb-1">Prod</h3><p id="pm-price" class="text-sm text-blue-600 font-bold mb-4">0€</p><div class="mb-4"><label class="text-xs font-bold uppercase">Επιλογές</label><div id="pm-options" class="space-y-2 mt-2 max-h-40 overflow-y-auto"></div></div><button onclick="app.confirmProductAdd()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl">Προσθήκη στο Καλάθι</button></div></div>
+        
+        <div id="pickup-modal" class="fixed inset-0 bg-slate-900/40 z-[70] hidden flex items-center justify-center backdrop-blur-sm"><div class="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4"><h3 class="text-lg font-bold text-center mb-4">Επιλογή Στάσης Παραλαβής</h3><div id="pickup-options" class="space-y-2 mb-4 max-h-60 overflow-y-auto"></div><button onclick="document.getElementById('pickup-modal').classList.add('hidden')" class="w-full bg-slate-100 py-2 rounded-xl text-sm font-bold text-slate-500">Ακύρωση</button></div></div>
+        
+        <div id="toast-container" class="fixed top-20 right-4 z-[100] flex flex-col gap-2 pointer-events-none"></div>
+
+    </div>
+
+    <script>
+        // ROUTE CONFIGURATION
+        const ROUTE_STOPS = [
+            { name: "Σύνταγμα", pct: 0, coords: "37.9755,23.7348", desc: "Η καρδιά της Αθήνας. Βουλή, Ερμού, Άγνωστος Στρατιώτης." },
+            { name: "Μουσείο Μπενάκη", pct: 10, coords: "37.9760,23.7406", desc: "Ένα από τα σημαντικότερα μουσεία." },
+            { name: "Καλλιμάρμαρο", pct: 20, coords: "37.9685,23.7411", desc: "Παναθηναϊκό Στάδιο, χώρος των πρώτων Ολυμπιακών." },
+            { name: "Πύλη Αδριανού", pct: 30, coords: "37.9693,23.7320", desc: "Ρωμαϊκό μνημείο, είσοδος στην αρχαία πόλη." },
+            { name: "Ακρόπολη", pct: 40, coords: "37.9715,23.7257", desc: "Ο Παρθενώνας, το παγκόσμιο σύμβολο." },
+            { name: "Θησείο", pct: 50, coords: "37.9764,23.7214", desc: "Περαντζάδα, καφέ και αρχαίος ναός του Ηφαίστου." },
+            { name: "Μοναστηράκι", pct: 60, coords: "37.9760,23.7256", desc: "Η παλιά αγορά, γιούσουρουμ και θέα." },
+            { name: "Ομόνοια", pct: 70, coords: "37.9841,23.7281", desc: "Ιστορικό εμπορικό κέντρο." },
+            { name: "Ακαδημία", pct: 80, coords: "37.9803,23.7336", desc: "Η τριλογία της Αθήνας." },
+            { name: "Σύνταγμα (Τέρμα)", pct: 100, coords: "37.9755,23.7348", desc: "Επιστροφή στην αφετηρία." }
+        ];
+
+        // PRODUCTS CONFIG (10+ items per shop)
+        const OPT_COFFEE = ["Σκέτος", "Μέτριος", "Γλυκός", "Με Γάλα"];
+        const CONFIG = {
+            busSpeed: 0.15, 
+            zoneDurations: { 'left': 15, 'right': 15, 'aisle': 10 },
+            shops: [
+                { 
+                    id: 1, name: "Coffee Route", cat: "Καφές", deliverTo: 10, color: "bg-amber-100 text-amber-600", img: "fa-mug-hot", 
+                    products: [
+                        {n:"Espresso", p:2.0}, {n:"Freddo Espresso", p:3.5, opt: OPT_COFFEE}, {n:"Freddo Cappuccino", p:3.8, opt: OPT_COFFEE}, 
+                        {n:"Cappuccino", p:3.5, opt: OPT_COFFEE}, {n:"Latte", p:4.0}, {n:"Ελληνικός", p:2.0, opt: OPT_COFFEE}, 
+                        {n:"Filter Coffee", p:3.0}, {n:"Americano", p:3.0}, {n:"Macchiato", p:2.5}, {n:"Flat White", p:3.8}
+                    ] 
+                },
+                { 
+                    id: 2, name: "Attic Bakery", cat: "Street Food", deliverTo: 20, color: "bg-orange-100 text-orange-600", img: "fa-bread-slice", 
+                    products: [
+                        {n:"Τυρόπιτα", p:2.2}, {n:"Κρουασάν Βουτύρου", p:2.0}, {n:"Κρουασάν Σοκολάτας", p:2.5}, {n:"Σπανακόπιτα", p:2.4},
+                        {n:"Μπουγάτσα", p:2.8}, {n:"Κουλούρι Θες/κης", p:0.8}, {n:"Σάντουιτς Γαλοπούλα", p:4.5}, {n:"Σάντουιτς Ζαμπόν", p:4.5},
+                        {n:"Πεϊνιρλί", p:3.0}, {n:"Λουκανικόπιτα", p:2.5}
+                    ] 
+                },
+                { 
+                    id: 3, name: "Juice & Green", cat: "Street Food", deliverTo: 30, color: "bg-lime-100 text-lime-600", img: "fa-carrot", 
+                    products: [
+                        {n:"Χυμός Πορτοκάλι", p:3.5}, {n:"Χυμός Ανάμεικτος", p:4.5}, {n:"Smoothie Energy", p:5.0}, {n:"Smoothie Berry", p:5.0},
+                        {n:"Σαλάτα Καίσαρα", p:6.5}, {n:"Σαλάτα Ζυμαρικών", p:6.0}, {n:"Φρουτοσαλάτα", p:4.0}, {n:"Γιαούρτι Granola", p:3.5},
+                        {n:"Μπάρα Δημητριακών", p:2.0}, {n:"Detox Water", p:1.5}
+                    ] 
+                },
+                { 
+                    id: 4, name: "Souvlaki GR", cat: "Street Food", deliverTo: 40, color: "bg-blue-100 text-blue-600", img: "fa-utensils", 
+                    products: [
+                        {n:"Πίτα Γύρο Χοιρινό", p:3.8}, {n:"Πίτα Γύρο Κοτόπουλο", p:3.8}, {n:"Πίτα Καλαμάκι Χοιρινό", p:3.5}, {n:"Πίτα Καλαμάκι Κοτόπουλο", p:3.5},
+                        {n:"Μερίδα Γύρος", p:8.5}, {n:"Μερίδα Καλαμάκια", p:8.0}, {n:"Χωριάτικη Σαλάτα", p:6.0}, {n:"Πατάτες Τηγανητές", p:3.0},
+                        {n:"Τζατζίκι", p:3.0}, {n:"Αναψυκτικό", p:1.5}
+                    ] 
+                },
+                { 
+                    id: 5, name: "Sweet Home", cat: "Γλυκά", deliverTo: 50, color: "bg-pink-100 text-pink-600", img: "fa-ice-cream", 
+                    products: [
+                        {n:"Βάφλα Σοκολάτα", p:5.0}, {n:"Βάφλα Παγωτό", p:6.5}, {n:"Παγωτό (Μπάλα)", p:2.5}, {n:"Σουφλέ Σοκολάτας", p:4.5},
+                        {n:"Cheesecake", p:4.0}, {n:"Προφιτερόλ", p:4.0}, {n:"Milkshake", p:4.5}, {n:"Donut", p:1.5},
+                        {n:"Κρέπα Σοκολάτα", p:4.0}, {n:"Κρέπα Μπισκότο", p:4.5}
+                    ] 
+                },
+                { 
+                    id: 6, name: "Pizza Fanatics", cat: "Street Food", deliverTo: 60, color: "bg-red-100 text-red-600", img: "fa-pizza-slice", 
+                    products: [
+                        {n:"Pizza Special (8κομ)", p:12.0}, {n:"Pizza Pepperoni", p:11.0}, {n:"Pizza Margarita", p:9.0}, {n:"Slice Special", p:3.0},
+                        {n:"Slice Pepperoni", p:3.0}, {n:"Calzone", p:5.0}, {n:"Peinirli Special", p:4.0}, {n:"Coca Cola 330ml", p:1.5},
+                        {n:"Μπύρα 330ml", p:2.0}, {n:"Σκορδόψωμο", p:2.5}
+                    ] 
+                },
+                {
+                    id: 7, name: "Sushi Stop", cat: "Street Food", deliverTo: 70, color: "bg-slate-200 text-slate-600", img: "fa-fish",
+                    products: [
+                        {n:"Sushi Combo (12pcs)", p:15.0}, {n:"Salmon Roll (6pcs)", p:6.0}, {n:"Tuna Roll", p:6.5}, {n:"California Roll", p:6.0},
+                        {n:"Avocado Maki", p:4.5}, {n:"Nigiri Salmon", p:5.0}, {n:"Nigiri Shrimp", p:5.5}, {n:"Edamame", p:3.5},
+                        {n:"Miso Soup", p:3.0}, {n:"Sake", p:4.0}
+                    ]
+                },
+                {
+                    id: 8, name: "Everest", cat: "Καφές", deliverTo: 80, color: "bg-red-50 text-red-600", img: "fa-mountain",
+                    products: [
+                        {n:"Freddo Espresso", p:3.2}, {n:"Sandwich Chef", p:4.8}, {n:"Sandwich Turkey", p:4.5}, {n:"Donut Choco", p:1.8},
+                        {n:"Orange Juice", p:3.5}, {n:"Cappuccino", p:3.5}, {n:"Nescafe Frappe", p:2.8}, {n:"Tea", p:2.5},
+                        {n:"Toast Cheese", p:2.5}, {n:"Water 500ml", p:0.5}
+                    ]
+                },
+                {
+                    id: 9, name: "Grigoris", cat: "Καφές", deliverTo: 90, color: "bg-green-50 text-green-700", img: "fa-mug-hot",
+                    products: [
+                        {n:"Freddo Cappuccino", p:3.2}, {n:"Spanakopita", p:2.4}, {n:"Kourapies", p:1.0}, {n:"Cold Sandwich", p:4.2},
+                        {n:"Hot Dog", p:2.5}, {n:"Espresso Double", p:2.5}, {n:"Salad Chef", p:5.5}, {n:"Loukoumas", p:0.8},
+                        {n:"Mpougatsa Cream", p:2.6}, {n:"Fresh Juice", p:3.0}
+                    ]
+                }
+            ]
+        };
+
+        const app = {
+            state: { 
+                cart: [], activeZones: [], isCleaning: false, currentShop: null, 
+                busPosition: 0, binLevel: 0, cleaningTimer: null, timeRemaining: 0, 
+                foundValuables: [], currentFilter: 'all', userRole: 'guest', 
+                tempProduct: null, driverTemp: 22, roofOpen: false, pinBuffer: "", 
+                ecoMode: false, energySaved: 0
+            },
+
+            // --- INITIALIZATION ---
+            init: function() {
+                const saved = localStorage.getItem('smart_bus_pos_v2');
+                if(saved) this.state.busPosition = parseFloat(saved);
+                
+                this.startBusSimulation();
+                this.startClock();
+                this.updateCartUI();
+            },
+
+            // --- LOGIN LOGIC ---
+            showPinPad: function() {
+                document.getElementById('login-main').classList.add('hidden');
+                document.getElementById('login-pin').classList.remove('hidden');
+                this.state.pinBuffer = "";
+                document.getElementById('pin-input').value = "";
+            },
+
+            hidePinPad: function() {
+                document.getElementById('login-pin').classList.add('hidden');
+                document.getElementById('login-main').classList.remove('hidden');
+            },
+
+            addPin: function(num) {
+                if(this.state.pinBuffer.length < 5) {
+                    this.state.pinBuffer += num;
+                    document.getElementById('pin-input').value = this.state.pinBuffer; // Show actual numbers or dots?
+                    // To act like password input, stick to dots via CSS input type="password" but JS sets value
+                }
+            },
+
+            clearPin: function() {
+                this.state.pinBuffer = "";
+                document.getElementById('pin-input').value = "";
+            },
+
+            submitPin: function() {
+                if(this.state.pinBuffer === "12345") {
+                    this.login('driver');
+                } else {
+                    const inp = document.getElementById('pin-input');
+                    inp.classList.add('border-red-500', 'animate-shake');
+                    setTimeout(() => inp.classList.remove('border-red-500', 'animate-shake'), 500);
+                    this.state.pinBuffer = "";
+                    inp.value = "";
+                }
+            },
+
+            login: function(role) {
+                this.state.userRole = role;
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('app-content').classList.remove('hidden');
+                
+                if (role === 'driver') {
+                    document.getElementById('user-role-display').innerText = "DRIVER MODE";
+                    document.getElementById('nav-driver').classList.remove('hidden');
+                    this.switchTab('systems');
+                } else {
+                    document.getElementById('user-role-display').innerText = "PASSENGER";
+                    document.getElementById('nav-passenger').classList.remove('hidden');
+                    this.switchTab('cafe');
+                    this.renderShops();
+                }
+            },
+
+            startClock: function() {
+                setInterval(() => {
+                    const now = new Date();
+                    document.getElementById('live-clock').innerText = now.toLocaleTimeString('el-GR', {hour:'2-digit', minute:'2-digit'});
+                }, 1000);
+            },
+
+            // --- BUS SIMULATION ---
+            startBusSimulation: function() {
+                setInterval(() => {
+                    if (this.state.busPosition >= 100) this.state.busPosition = 0;
+                    else this.state.busPosition += CONFIG.busSpeed;
+                    
+                    localStorage.setItem('smart_bus_pos_v2', this.state.busPosition);
+
+                    this.updateRouteVisuals();
+                    if(this.state.userRole === 'passenger') this.renderShops();
+                    this.checkLandmarks();
+                    
+                    if (this.state.userRole === 'driver') {
+                        this.checkDriverFatigue();
+                        if(this.state.ecoMode) this.updateEnergySavings();
+                    }
+                    
+                }, 1000);
+            },
+
+            updateRouteVisuals: function() {
+                let currentIdx = 0;
+                for(let i=0; i<ROUTE_STOPS.length-1; i++) {
+                    if(this.state.busPosition >= ROUTE_STOPS[i].pct) currentIdx = i;
+                }
+                const curr = ROUTE_STOPS[currentIdx];
+                const next = ROUTE_STOPS[currentIdx+1] || ROUTE_STOPS[0];
+
+                document.getElementById('route-visualizer').innerHTML = `
+                    <div class="flex flex-col items-center">
+                        <div class="w-3 h-3 bg-blue-600 rounded-full animate-pulse shadow-lg shadow-blue-500"></div>
+                        <span class="text-[9px] font-bold text-blue-700 mt-1">${curr.name}</span>
+                    </div>
+                    <div class="flex-1 h-0.5 bg-slate-200 mx-2 relative overflow-hidden">
+                        <div class="absolute top-0 left-0 h-full bg-blue-400 animate-slide" style="width: 50%"></div>
+                    </div>
+                    <div class="flex flex-col items-center opacity-50">
+                        <div class="w-2 h-2 bg-slate-400 rounded-full"></div>
+                        <span class="text-[9px] mt-1">${next.name}</span>
+                    </div>`;
+                
+                document.getElementById('next-stop-display').innerHTML = `Επόμενη: <span class="text-blue-600">${next.name}</span>`;
+            },
+
+            // --- PASSENGER: SHOPS ---
+            filterShops: function(cat) {
+                this.state.currentFilter = cat;
+                document.querySelectorAll('.filter-btn').forEach(b => {
+                    if (b.innerText.includes(cat) || (cat === 'all' && b.innerText.includes('Όλα'))) b.classList.add('active-filter');
+                    else b.classList.remove('active-filter');
+                });
+                this.renderShops();
+            },
+
+            renderShops: function() {
+                if(document.getElementById('view-cafe').classList.contains('hidden')) return;
+
+                const grid = document.getElementById('shops-grid');
+                const filtered = CONFIG.shops.filter(s => this.state.currentFilter === 'all' || s.cat === this.state.currentFilter);
+
+                grid.innerHTML = filtered.map(shop => {
+                    let statusBadge = "";
+                    let isUnavailable = false;
+                    const busPos = this.state.busPosition;
+                    const stopPos = shop.deliverTo;
+
+                    if (busPos > stopPos + 2) {
+                        isUnavailable = true;
+                        statusBadge = `<div class="status-tag absolute bottom-2 right-2 bg-slate-200 text-slate-500 text-[10px] font-bold px-2 py-1 rounded-full">ΜΗ ΔΙΑΘΕΣΙΜΟ</div>`;
+                    } else if (stopPos - busPos < 15) {
+                        statusBadge = `<div class="status-tag absolute bottom-2 right-2 bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full animate-pulse">● ΑΝΟΙΧΤΟ</div>`;
+                    } else {
+                        statusBadge = `<div class="status-tag absolute bottom-2 right-2 bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-1 rounded-full">ΔΕΧΕΤΑΙ ΠΑΡΑΓΓΕΛΙΕΣ</div>`;
+                    }
+
+                    const clickAction = isUnavailable ? `app.showToast('Το λεωφορείο πέρασε τη στάση!', 'fa-circle-xmark', 'bg-slate-600')` : `app.openShop(${shop.id})`;
+                    const opacityClass = isUnavailable ? 'shop-unavailable' : '';
+
+                    return `
+                    <div onclick="${clickAction}" class="food-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm cursor-pointer group relative overflow-hidden hover:shadow-md transition ${opacityClass}">
+                        <div class="h-24 rounded-xl ${shop.color} flex items-center justify-center mb-3 relative overflow-hidden">
+                             <i class="fa-solid ${shop.img} text-4xl opacity-80 group-hover:scale-110 transition duration-500"></i>
+                             ${statusBadge}
+                        </div>
+                        <div class="flex justify-between items-start">
+                            <div><h4 class="font-bold text-slate-800 text-lg leading-tight">${shop.name}</h4><p class="text-xs text-slate-400 font-medium mt-0.5">${shop.cat}</p></div>
+                            <div class="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded">Stop #${shop.deliverTo/10}</div>
+                        </div>
+                    </div>`;
+                }).join('');
+            },
+
+            openShop: function(id) {
+                const shop = CONFIG.shops.find(s => s.id === id);
+                this.state.currentShop = shop;
+                document.getElementById('menu-title').innerText = shop.name;
+                document.getElementById('menu-subtitle').innerText = shop.cat;
+                
+                document.getElementById('menu-items-grid').innerHTML = shop.products.map(p => 
+                    `<div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex justify-between items-center group hover:border-blue-200 transition">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400"><i class="fa-solid fa-utensils"></i></div>
+                            <div><div class="font-bold text-slate-700 text-sm">${p.n}</div><div class="text-slate-500 text-xs">${p.p.toFixed(2)}€</div></div>
+                        </div>
+                        <button onclick="app.prepareProduct('${p.n}', ${p.p})" class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition shadow-sm"><i class="fa-solid fa-plus text-xs"></i></button>
+                    </div>`
+                ).join('');
+                
+                document.getElementById('menu-view').classList.remove('translate-x-full', 'hidden');
+            },
+
+            closeMenu: function() { 
+                document.getElementById('menu-view').classList.add('translate-x-full'); 
+                setTimeout(()=>document.getElementById('menu-view').classList.add('hidden'), 300); 
+            },
+
+            prepareProduct: function(n, p) {
+                const prod = this.state.currentShop.products.find(x => x.n === n);
+                this.state.tempProduct = { ...prod, shopName: this.state.currentShop.name };
+                
+                if(prod.opt && prod.opt.length > 0) {
+                    document.getElementById('pm-title').innerText = prod.n;
+                    document.getElementById('pm-price').innerText = prod.p.toFixed(2) + '€';
+                    document.getElementById('pm-options').innerHTML = prod.opt.map(o => `<label class="flex items-center space-x-2 p-2 bg-slate-50 rounded border border-slate-100 cursor-pointer hover:border-blue-300"><input type="radio" name="p-opt" value="${o}" class="form-radio text-blue-600"><span class="text-sm text-slate-700">${o}</span></label>`).join('');
+                    document.querySelector('input[name="p-opt"]').checked = true;
+                    document.getElementById('product-modal').classList.remove('hidden');
+                } else { 
+                    this.addToCart(prod.n, prod.p, 1, "-"); 
+                }
+            },
+
+            confirmProductAdd: function() {
+                const selected = document.querySelector('input[name="p-opt"]:checked').value;
+                this.addToCart(this.state.tempProduct.n, this.state.tempProduct.p, 1, selected);
+                document.getElementById('product-modal').classList.add('hidden');
+            },
+
+            addToCart: function(n, p, qty, variant) {
+                const sName = this.state.currentShop.name;
+                const ex = this.state.cart.find(i => i.name === n && i.shopName === sName && i.variant === variant);
+                if(ex) ex.qty += qty; else this.state.cart.push({name:n, price:p, shopName: sName, qty: qty, variant: variant});
+                
+                const icon = document.getElementById('cart-icon'); 
+                icon.classList.add('scale-125'); setTimeout(() => icon.classList.remove('scale-125'), 200);
+                this.updateCartUI();
+            },
+
+            updateCartUI: function() {
+                const list = document.getElementById('cart-items');
+                if (this.state.cart.length === 0) { 
+                    list.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-300"><i class="fa-solid fa-basket-shopping text-4xl mb-3 opacity-20"></i><span class="text-xs font-medium">Το καλάθι είναι άδειο</span></div>'; 
+                    document.getElementById('cart-count').innerText="0"; 
+                    document.getElementById('cart-total').innerText="0.00€"; 
+                    return; 
+                }
+                
+                let total = 0, totalItems = 0;
+                list.innerHTML = this.state.cart.map((item, i) => {
+                    total += item.price * item.qty; totalItems += item.qty;
+                    return `<div class="flex justify-between items-start border-b border-slate-50 pb-2 last:border-0">
+                        <div>
+                            <div class="text-[10px] text-slate-400 font-bold uppercase">${item.shopName}</div>
+                            <div class="text-sm font-bold text-slate-700">${item.name} <span class="text-xs font-normal text-slate-500">(${item.variant})</span></div>
+                            <div class="text-xs text-blue-600 font-bold mt-0.5">${(item.price * item.qty).toFixed(2)}€</div>
+                        </div>
+                        <div class="flex items-center gap-2 bg-slate-50 rounded-lg p-1">
+                            <span class="text-xs font-bold text-slate-700 px-2">x${item.qty}</span>
+                        </div>
+                    </div>`;
+                }).join('');
+                document.getElementById('cart-count').innerText = totalItems; 
+                document.getElementById('cart-total').innerText = total.toFixed(2) + "€";
+            },
+
+            initiateCheckout: function() {
+                if(this.state.cart.length === 0) return;
+                const validStops = ROUTE_STOPS.filter(s => s.pct > this.state.busPosition + 5);
+                const list = document.getElementById('pickup-options');
+                list.innerHTML = validStops.map(s => 
+                    `<button onclick="app.finishOrder('${s.name}')" class="w-full text-left px-4 py-3 rounded-xl border border-slate-100 hover:bg-blue-50 hover:border-blue-200 transition flex justify-between items-center group">
+                        <span class="font-bold text-slate-700 group-hover:text-blue-700">${s.name}</span>
+                        <i class="fa-solid fa-location-dot text-slate-300 group-hover:text-blue-500"></i>
+                    </button>`
+                ).join('');
+                document.getElementById('pickup-modal').classList.remove('hidden');
+            },
+
+            finishOrder: function(stopName) {
+                document.getElementById('pickup-modal').classList.add('hidden');
+                this.state.cart = []; 
+                this.updateCartUI(); 
+                this.closeMenu();
+                this.showToast(`Παραγγελία εστάλη για: ${stopName}`, 'fa-check-circle', 'bg-emerald-600');
+            },
+
+            // --- PASSENGER: WALKING MODE / MAP ---
+            checkLandmarks: function() {
+                let nearest = ROUTE_STOPS[0];
+                let minDiff = 1000;
+                ROUTE_STOPS.forEach(s => {
+                    const diff = Math.abs(s.pct - this.state.busPosition);
+                    if(diff < minDiff) { minDiff = diff; nearest = s; }
+                });
+                
+                document.getElementById('landmark-name').innerText = nearest.name;
+                document.getElementById('landmark-desc').innerText = nearest.desc;
+                document.getElementById('wm-stop-name').innerText = nearest.name;
+                document.getElementById('ext-map-link').href = `https://www.google.com/maps/search/?api=1&query=${nearest.coords}`;
+                
+                if(!document.getElementById('walking-mode-modal').classList.contains('hidden')) {
+                     const mapUrl = `https://maps.google.com/maps?q=${nearest.coords}&z=16&output=embed`;
+                     const iframe = document.getElementById('google-map-frame');
+                     if(iframe.src !== mapUrl) iframe.src = mapUrl;
+                }
+            },
+
+            activateWalkingMode: function() {
+                document.getElementById('walking-mode-modal').classList.remove('hidden');
+                this.checkLandmarks();
+                const currentStop = document.getElementById('landmark-name').innerText;
+                document.getElementById('wm-poi-list').innerHTML = `
+                    <div class="bg-white p-2 rounded border border-slate-100 text-xs flex justify-between"><span>🏛️ Μουσείο ${currentStop}</span> <span class="font-bold">200m</span></div>
+                    <div class="bg-white p-2 rounded border border-slate-100 text-xs flex justify-between"><span>☕ Cafe ${currentStop}</span> <span class="font-bold">50m</span></div>
+                `;
+            },
+            
+            closeWalkingMode: function() {
+                document.getElementById('walking-mode-modal').classList.add('hidden');
+            },
+
+            // --- GEMINI AI ASSISTANT (SIMULATED) ---
+            sendChatMessage: function(msg = null) {
+                const input = document.getElementById('chat-input');
+                const text = msg || input.value;
+                if(!text) return;
+
+                // User Msg
+                const history = document.getElementById('chat-history');
+                history.innerHTML += `<div class="chat-msg chat-user animate-slide">${text}</div>`;
+                input.value = "";
+                history.scrollTop = history.scrollHeight;
+
+                // Loading...
+                const loadingId = 'loading-' + Date.now();
+                history.innerHTML += `<div id="${loadingId}" class="chat-msg chat-ai"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>`;
+                history.scrollTop = history.scrollHeight;
+
+                // Simulate AI Response Time
+                setTimeout(() => {
+                    document.getElementById(loadingId).remove();
+                    const response = this.getAIResponse(text);
+                    history.innerHTML += `<div class="chat-msg chat-ai animate-slide"><div class="font-bold text-xs text-purple-600 mb-1">Gemini AI</div>${response}</div>`;
+                    history.scrollTop = history.scrollHeight;
+                }, 1500);
+            },
+
+            getAIResponse: function(text) {
+                const lower = text.toLowerCase();
+                if(lower.includes("καιρ")) return "Ο καιρός στην Αθήνα σήμερα είναι ηλιόλουστος με 24°C. Ιδανική μέρα για περιήγηση!";
+                if(lower.includes("ακρόπολη")) return "Η Ακρόπολη είναι το σημαντικότερο αρχαίο μνημείο του δυτικού κόσμου. Σας προτείνω να κατεβείτε στη στάση 'Ακρόπολη' για να επισκεφθείτε τον Παρθενώνα.";
+                if(lower.includes("φαγητό") || lower.includes("πεινάω")) return "Μπορείτε να παραγγείλετε φαγητό από το Tab 'Delivery'! Συνεργαζόμαστε με τα καλύτερα καταστήματα της διαδρομής.";
+                if(lower.includes("στάση") || lower.includes("που είμαστε")) return `Η επόμενη στάση είναι: ${document.getElementById('landmark-name').innerText}.`;
+                if(lower.includes("προσφορά")) return "Σήμερα έχουμε 20% έκπτωση στο 'Juice & Green' για όλους τους επιβάτες!";
+                return "Είμαι εδώ για να βοηθήσω! Μπορείτε να με ρωτήσετε για τα αξιοθέατα, τον καιρό ή τις υπηρεσίες του λεωφορείου.";
+            },
+
+            // --- DRIVER UTILS ---
+            checkDriverFatigue: function() {
+                if (Math.random() < 0.01) { 
+                    const box = document.getElementById('driver-alert-box');
+                    box.classList.remove('bg-slate-100', 'text-slate-500');
+                    box.classList.add('bg-red-100', 'text-red-700', 'border-red-200', 'alert-flash');
+                    box.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-xl mb-1 block"></i> Σκεφτείτε μήπως θέλετε καφέ`;
+                    setTimeout(() => {
+                        box.classList.add('bg-slate-100', 'text-slate-500');
+                        box.classList.remove('bg-red-100', 'text-red-700', 'border-red-200', 'alert-flash');
+                        box.innerHTML = `<i class="fa-solid fa-face-smile text-lg mb-1 block"></i> Κατάσταση Οδηγού: Κανονική`;
+                    }, 5000);
+                }
+            },
+
+            driverUtils: {
+                adjustTemp: function(d) { 
+                    app.state.driverTemp += d; 
+                    document.getElementById('target-temp').innerText = app.state.driverTemp + "°C"; 
+                    app.state.ecoMode = false; // Manual override disables eco
+                    app.updateEcoUI();
+                },
+                toggleRoof: function() {
+                    app.state.roofOpen = !app.state.roofOpen;
+                    const btn = document.getElementById('btn-roof');
+                    if(app.state.roofOpen) {
+                        btn.innerHTML = `<i class="fa-solid fa-arrow-down"></i> <span>ΚΛΕΙΣΙΜΟ ΟΡΟΦΗΣ</span>`;
+                        btn.className = "w-full py-3 bg-emerald-500 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 shadow-emerald-500/50 shadow-lg";
+                        app.showToast("Η οροφή άνοιξε - PV Max Efficiency", "fa-sun", "bg-yellow-500");
+                    } else {
+                        btn.innerHTML = `<i class="fa-solid fa-arrow-up-from-bracket"></i> <span>ΑΝΟΙΓΜΑ ΟΡΟΦΗΣ</span>`;
+                        btn.className = "w-full py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2";
+                        app.showToast("Η οροφή έκλεισε", "fa-shield", "bg-slate-600");
+                    }
+                },
+                toggleEcoMode: function() {
+                    app.state.ecoMode = !app.state.ecoMode;
+                    if(app.state.ecoMode) {
+                        // AI Takes over logic
+                        app.state.driverTemp = 24; // Optimal eco temp
+                        document.getElementById('target-temp').innerText = "24°C";
+                        app.showToast("Eco Mode Ενεργό: Βελτιστοποίηση...", "fa-leaf", "bg-emerald-500");
+                    } else {
+                        app.showToast("Eco Mode Ανενεργό", "fa-power-off", "bg-slate-500");
+                    }
+                    app.updateEcoUI();
+                }
+            },
+
+            updateEcoUI: function() {
+                const btn = document.getElementById('btn-eco-ac');
+                const disp = document.getElementById('energy-savings-display');
+                if(this.state.ecoMode) {
+                    btn.classList.add('bg-blue-50', 'border-blue-400');
+                    btn.classList.remove('bg-white', 'border-blue-200');
+                    document.getElementById('eco-status').innerText = "ON";
+                    document.getElementById('eco-status').className = "text-emerald-600 font-bold";
+                    disp.classList.remove('hidden');
+                } else {
+                    btn.classList.remove('bg-blue-50', 'border-blue-400');
+                    btn.classList.add('bg-white', 'border-blue-200');
+                    document.getElementById('eco-status').innerText = "OFF";
+                    document.getElementById('eco-status').className = "text-slate-400";
+                    disp.classList.add('hidden');
+                }
+            },
+
+            updateEnergySavings: function() {
+                // Simulate accumulating savings
+                this.state.energySaved += 0.005;
+                document.getElementById('energy-savings-display').innerText = `Εξοικονόμηση: ${this.state.energySaved.toFixed(3)} kWh`;
+            },
+
+
+            // --- CLEANING ROBOT LOGIC (AUTO EMPTY) ---
+            toggleZone: function(id) { 
+                const el = document.getElementById('zone-'+id); 
+                const idx = this.state.activeZones.indexOf(id); 
+                if(idx>-1) { 
+                    this.state.activeZones.splice(idx,1); 
+                    el.classList.remove('zone-active'); 
+                } else { 
+                    this.state.activeZones.push(id); 
+                    el.classList.add('zone-active'); 
+                } 
+            },
+
+            startCleaning: function() {
+                if(this.state.activeZones.length === 0) return this.showToast('Επιλέξτε ζώνη!', 'fa-triangle-exclamation', 'bg-amber-500');
+                if(this.state.binLevel >= 100) return this.showToast('Κάδος Γεμάτος!', 'fa-trash', 'bg-red-500');
+                
+                let totalTime = 0; 
+                this.state.activeZones.forEach(z => totalTime += CONFIG.zoneDurations[z]); 
+                this.state.timeRemaining = totalTime; 
+                this.state.isCleaning = true; 
+                
+                this.updateVacuumControls(true);
+                document.getElementById('robot-unit').classList.remove('hidden'); 
+                
+                this.moveRobotLoop();
+                this.state.cleaningTimer = setInterval(() => this.cleaningTick(), 1000);
+            },
+
+            cleaningTick: function() {
+                if(!this.state.isCleaning) return;
+                this.state.timeRemaining--;
+                document.getElementById('timer-text').innerText = `00:${this.state.timeRemaining.toString().padStart(2,'0')}`;
+                
+                // Logic: Bin filling up
+                if(this.state.binLevel < 100) { 
+                    this.state.binLevel += 5; // Fill faster for demo
+                    this.updateBinUI(); 
+                } else { 
+                    // BIN FULL -> AUTO EMPTY SEQUENCE
+                    this.stopCleaning(); 
+                    document.getElementById('bin-full-warning').classList.remove('hidden');
+                    this.showToast('Κάδος Γεμάτος! Διακοπή...', 'fa-trash', 'bg-red-500');
+                    
+                    // Auto Empty Logic
+                    setTimeout(() => {
+                        this.showToast('Αυτόματο άδειασμα σε εξέλιξη...', 'fa-recycle', 'bg-orange-500');
+                        setTimeout(() => {
+                             this.state.binLevel = 0;
+                             this.updateBinUI();
+                             document.getElementById('bin-full-warning').classList.add('hidden');
+                             this.showToast('Ο κάδος άδειασε αυτόματα!', 'fa-check', 'bg-emerald-500');
+                        }, 2000);
+                    }, 1500);
+                    
+                    return; 
+                } 
+                
+                if(this.state.timeRemaining <= 0) { 
+                    this.stopCleaning(); 
+                    this.showToast('Καθαρισμός Ολοκληρώθηκε', 'fa-flag-checkered', 'bg-emerald-600'); 
+                    return; 
+                }
+            },
+
+            stopCleaning: function() { 
+                this.state.isCleaning = false; 
+                clearInterval(this.state.cleaningTimer); 
+                this.updateVacuumControls(false); 
+                document.getElementById('robot-unit').classList.add('hidden'); 
+                document.getElementById('timer-text').innerText = "--:--"; 
+            },
+
+            updateVacuumControls: function(active) { 
+                document.getElementById('btn-start').disabled = active; 
+                document.getElementById('btn-start').classList.toggle('opacity-50', active); 
+                document.getElementById('btn-stop').disabled = !active; 
+                document.getElementById('btn-stop').classList.toggle('opacity-50', !active); 
+                document.getElementById('vac-status-text').innerText = active ? "⚡ Καθαρισμός..." : "💤 Αναμονή"; 
+                document.getElementById('vac-status-text').className = active ? "text-base font-bold text-emerald-600 animate-pulse" : "text-base font-bold text-slate-700 truncate"; 
+            },
+
+            updateBinUI: function() { 
+                const lvl = this.state.binLevel; 
+                document.getElementById('bin-bar').style.width = lvl + '%'; 
+                document.getElementById('bin-text').innerText = lvl + '%'; 
+                if(lvl >= 100) document.getElementById('bin-full-warning').classList.remove('hidden'); 
+            },
+
+            manualEmptyBin: function() { 
+                this.state.binLevel = 0; 
+                this.updateBinUI(); 
+                document.getElementById('bin-full-warning').classList.add('hidden');
+                this.showToast('Ο κάδος άδειασε', 'fa-trash-arrow-up', 'bg-orange-500'); 
+            },
+
+            moveRobotLoop: function() {
+                if(!this.state.isCleaning) return;
+                const r = document.getElementById('robot-unit');
+                r.style.top = (Math.random() * 60 + 20) + '%';
+                r.style.left = (Math.random() * 60 + 20) + '%';
+                setTimeout(() => this.moveRobotLoop(), 2000);
+            },
+
+            simulateObjectFound: function() {
+                const items = ["Πορτοφόλι", "Κινητό", "Γυαλιά Ηλίου", "Κλειδιά"];
+                const item = items[Math.floor(Math.random()*items.length)];
+                
+                this.state.foundValuables.push({ name: item, time: new Date().toLocaleTimeString('el-GR') });
+                
+                const list = document.getElementById('found-items-list');
+                document.getElementById('found-badge').innerText = this.state.foundValuables.length;
+                
+                list.innerHTML = this.state.foundValuables.map((itm, idx) => `
+                    <div class="bg-white p-2 rounded-lg border border-purple-100 shadow-sm flex justify-between items-center animate-pop">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded bg-purple-50 text-purple-600 flex items-center justify-center text-xs"><i class="fa-solid fa-gem"></i></div>
+                            <div><div class="text-xs font-bold text-slate-700">${itm.name}</div><div class="text-[10px] text-slate-400">Ώρα: ${itm.time}</div></div>
+                        </div>
+                    </div>`).join('');
+                
+                this.showToast('Βρέθηκε Αντικείμενο!', 'fa-bell', 'bg-purple-600');
+            },
+
+            // --- UTILS ---
+            switchTab: function(t) {
+                // Hide all
+                ['view-cafe','view-tour','view-systems','view-vacuum', 'view-ai'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if(el) {
+                        el.classList.add('hidden');
+                        el.classList.remove('flex');
+                    }
+                });
+                
+                // Show requested
+                const target = document.getElementById('view-'+t);
+                target.classList.remove('hidden');
+                if(t !== 'systems') target.classList.add('flex'); // Restore flex layout
+                
+                // Update Nav Active State
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                const btn = document.getElementById('tab-'+t);
+                if(btn) btn.classList.add('active');
+            },
+
+            showToast: function(msg, icon, color) {
+                const con = document.getElementById('toast-container');
+                const el = document.createElement('div');
+                el.className = `flex items-center gap-3 ${color} text-white px-4 py-3 rounded-lg shadow-xl border border-white/10 text-sm font-medium backdrop-blur-md animate-bounce`;
+                el.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${msg}</span>`;
+                con.appendChild(el);
+                setTimeout(() => el.remove(), 3000);
+            }
+        };
+
+        window.driver = app.driverUtils;
+        window.app = app;
+        window.onload = () => app.init();
+    </script>
+</body>
+</html>
