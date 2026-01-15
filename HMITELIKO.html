@@ -8,6 +8,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/generative-ai": "https://esm.run/@google/generative-ai"
+        }
+      }
+    </script>
+
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -50,7 +58,6 @@
 </head>
 <body class="h-screen flex flex-col overflow-hidden text-slate-800 relative">
 
-    <!-- LOGIN SCREEN -->
     <div id="login-screen" class="absolute inset-0 z-[100] flex flex-col items-center justify-center p-4">
         <div class="glass-panel p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center text-white relative overflow-hidden">
             <div class="bg-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/50 relative z-10">
@@ -59,7 +66,6 @@
             <h1 class="text-2xl font-bold mb-1 relative z-10">Smart Tourist Bus</h1>
             <p class="text-slate-300 text-xs mb-8 relative z-10">Integrated Interaction System v3.0 AI</p>
             
-            <!-- Main Login Buttons -->
             <div id="login-main" class="space-y-3 relative z-10">
                 <button onclick="app.login('passenger')" class="w-full bg-white text-slate-900 font-bold py-3 rounded-xl hover:bg-slate-100 transition flex items-center justify-center gap-3">
                     <i class="fa-solid fa-suitcase-rolling text-blue-600"></i> Είσοδος Επιβάτη
@@ -69,9 +75,8 @@
                 </button>
             </div>
 
-            <!-- PIN Pad for Staff -->
             <div id="login-pin" class="hidden relative z-10">
-                <p class="text-sm mb-4">Εισάγετε 5-ψήφιο Κωδικό</p>
+                <p class="text-sm mb-4">Εισάγετε 5-ψήφιο Κωδικό (12345)</p>
                 <div class="flex justify-center gap-2 mb-6">
                     <input type="password" id="pin-input" readonly class="w-32 bg-slate-800/50 border border-slate-600 rounded text-center text-2xl tracking-widest py-2 focus:outline-none text-white placeholder-slate-600" placeholder="•••••">
                 </div>
@@ -98,7 +103,6 @@
 
     <div id="app-content" class="h-full flex flex-col hidden">
         
-        <!-- HEADER -->
         <header class="bg-white border-b border-slate-200 px-4 py-2 flex flex-col gap-2 shadow-sm z-30 shrink-0">
             <div class="flex justify-between items-center">
                 <div class="flex items-center gap-3">
@@ -109,8 +113,10 @@
                     </div>
                 </div>
                 <div class="text-right flex items-center gap-3">
+                    <div id="bus-speed-display" class="hidden md:block text-xs font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded">50 km/h</div>
                     <div id="next-stop-display" class="hidden md:block text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">Επόμενη: <span class="text-blue-600">...</span></div>
                     <div id="live-clock" class="font-mono text-sm font-bold text-slate-700">00:00</div>
+                    <button onclick="app.showHelp()" class="text-xs bg-slate-100 p-2 rounded-full hover:bg-slate-200 text-slate-600"><i class="fa-solid fa-question"></i></button>
                     <button onclick="location.reload()" class="text-xs text-red-500 hover:text-red-700"><i class="fa-solid fa-power-off"></i></button>
                 </div>
             </div>
@@ -120,7 +126,6 @@
             </div>
         </header>
 
-        <!-- NAV: PASSENGER -->
         <nav id="nav-passenger" class="bg-white border-b border-slate-100 flex shrink-0 z-20 hidden">
             <button onclick="app.switchTab('cafe')" id="tab-cafe" class="tab-btn active flex-1 py-3 font-semibold text-slate-500 hover:text-blue-600 transition flex items-center justify-center gap-2 text-sm"><i class="fa-solid fa-utensils"></i> Delivery</button>
             <button onclick="app.switchTab('tour')" id="tab-tour" class="tab-btn flex-1 py-3 font-semibold text-slate-500 hover:text-blue-600 transition flex items-center justify-center gap-2 text-sm"><i class="fa-solid fa-eye"></i> Θέα & Πλοήγηση</button>
@@ -130,7 +135,6 @@
             </button>
         </nav>
 
-        <!-- NAV: DRIVER -->
         <nav id="nav-driver" class="bg-white border-b border-slate-100 flex shrink-0 z-20 hidden">
             <button onclick="app.switchTab('systems')" id="tab-systems" class="tab-btn active flex-1 py-3 font-semibold text-slate-500 hover:text-blue-600 transition flex items-center justify-center gap-2 text-sm"><i class="fa-solid fa-gauge-high"></i> Συστήματα & HVAC</button>
             <button onclick="app.switchTab('vacuum')" id="tab-vacuum" class="tab-btn flex-1 py-3 font-semibold text-slate-500 hover:text-blue-600 transition flex items-center justify-center gap-2 text-sm"><i class="fa-solid fa-robot"></i> Καθαρισμός</button>
@@ -138,7 +142,6 @@
 
         <main class="flex-1 overflow-hidden relative bg-slate-50">
 
-            <!-- TAB 1: CAFE / SHOPS -->
             <section id="view-cafe" class="h-full flex flex-col md:flex-row overflow-hidden relative hidden">
                 <div class="flex-1 flex flex-col overflow-hidden h-full relative">
                     <div class="p-4 pb-2 shrink-0">
@@ -173,7 +176,6 @@
                 </div>
             </section>
 
-            <!-- TAB 2: TOUR / VIEW -->
             <section id="view-tour" class="h-full hidden flex flex-col overflow-hidden relative bg-slate-100 p-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
                     <div class="bg-black rounded-2xl overflow-hidden shadow-lg relative flex flex-col group">
@@ -193,20 +195,19 @@
                             <h2 id="landmark-name" class="text-3xl font-black text-slate-800 mb-2">Φόρτωση...</h2>
                             <p id="landmark-desc" class="text-slate-600 leading-relaxed text-sm mb-6 max-w-sm">Το σύστημα GPS εντοπίζει τη θέση σας...</p>
                             
-                            <button onclick="app.activateWalkingMode()" class="w-full bg-slate-900 text-white px-6 py-4 rounded-xl text-sm font-bold hover:bg-slate-800 transition shadow-lg flex items-center justify-center gap-3 group">
-                                <span class="bg-white/20 p-2 rounded-full"><i class="fa-solid fa-person-walking"></i></span>
-                                <div class="text-left">
-                                    <div class="uppercase text-[10px] text-slate-400">Κατεβαινετε εδω;</div>
-                                    <div>Ενεργοποίηση Walking Mode</div>
-                                </div>
-                                <i class="fa-solid fa-chevron-right ml-auto group-hover:translate-x-1 transition"></i>
-                            </button>
+                            <div class="flex gap-2 w-full">
+                                <button onclick="app.speakLandmark()" class="flex-1 bg-blue-50 text-blue-600 px-4 py-3 rounded-xl text-sm font-bold hover:bg-blue-100 transition flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-volume-high"></i> Ανάγνωση
+                                </button>
+                                <button onclick="app.activateWalkingMode()" class="flex-[2] bg-slate-900 text-white px-4 py-3 rounded-xl text-sm font-bold hover:bg-slate-800 transition shadow-lg flex items-center justify-center gap-3 group">
+                                    <i class="fa-solid fa-person-walking"></i> Walking Mode
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <!-- TAB 3: GEMINI AI ASSISTANT -->
             <section id="view-ai" class="h-full hidden flex flex-col overflow-hidden relative bg-white">
                 <div class="bg-gradient-to-r from-blue-600 to-purple-600 p-4 text-white flex justify-between items-center shrink-0">
                     <div>
@@ -221,25 +222,16 @@
                 <div id="chat-history" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-slate-50">
                     <div class="chat-msg chat-ai">
                         <div class="font-bold text-xs text-purple-600 mb-1">Gemini AI</div>
-                        Γειά σας! Είμαι ο ψηφιακός βοηθός του λεωφορείου. Ρωτήστε με για τη διαδρομή, τα αξιοθέατα ή τον καιρό!
+                        Γειά σας! Είμαι ο ψηφιακός βοηθός του λεωφορείου (Powered by Google Gemini). Ρωτήστε με για τη διαδρομή, τα αξιοθέατα ή τον καιρό!
                     </div>
                 </div>
 
                 <div class="p-3 border-t border-slate-200 bg-white flex gap-2">
-                    <input type="text" id="chat-input" placeholder="Ρωτήστε κάτι (π.χ. 'Τι βλέπω;', 'Πρότεινε φαγητό')..." class="flex-1 bg-slate-100 border-0 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none" onkeypress="if(event.key==='Enter') app.sendChatMessage()">
+                    <input type="text" id="chat-input" placeholder="Ρωτήστε κάτι (π.χ. 'Πες μου για την Ακρόπολη')..." class="flex-1 bg-slate-100 border-0 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none" onkeypress="if(event.key==='Enter') app.sendChatMessage()">
                     <button onclick="app.sendChatMessage()" class="bg-purple-600 text-white w-12 rounded-xl hover:bg-purple-700 transition flex items-center justify-center"><i class="fa-solid fa-paper-plane"></i></button>
-                </div>
-                
-                <!-- Quick Prompts -->
-                <div class="p-2 bg-slate-100 flex gap-2 overflow-x-auto border-t border-slate-200">
-                    <button onclick="app.sendChatMessage('Τι αξιοθέατο είναι κοντά;')" class="whitespace-nowrap bg-white text-slate-600 text-xs px-3 py-1.5 rounded-full border border-slate-200 hover:border-purple-400">🏛️ Κοντινά αξιοθέατα</button>
-                    <button onclick="app.sendChatMessage('Πες μου για την Ακρόπολη')" class="whitespace-nowrap bg-white text-slate-600 text-xs px-3 py-1.5 rounded-full border border-slate-200 hover:border-purple-400">📜 Ιστορία</button>
-                    <button onclick="app.sendChatMessage('Τι καιρό κάνει;')" class="whitespace-nowrap bg-white text-slate-600 text-xs px-3 py-1.5 rounded-full border border-slate-200 hover:border-purple-400">🌤️ Καιρός</button>
-                    <button onclick="app.sendChatMessage('Έχεις κάποια προσφορά;')" class="whitespace-nowrap bg-white text-slate-600 text-xs px-3 py-1.5 rounded-full border border-slate-200 hover:border-purple-400">🏷️ Προσφορές</button>
                 </div>
             </section>
 
-            <!-- TAB 4: DRIVER SYSTEMS & HVAC -->
             <section id="view-systems" class="h-full hidden flex flex-col p-4 gap-4 overflow-y-auto bg-slate-50">
                 <div class="flex justify-between items-center mb-2">
                     <h2 class="text-xl font-bold text-slate-800">Κέντρο Ελέγχου Λεωφορείου</h2>
@@ -247,7 +239,6 @@
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <!-- Safety Monitor -->
                     <div class="dash-card border-l-4 border-l-emerald-500 relative overflow-hidden" id="driving-assist-card">
                         <div class="flex justify-between items-start mb-4">
                             <div><h3 class="font-bold text-slate-700">Βοηθός Οδήγησης</h3><p class="text-xs text-slate-500">AI Safety Monitor</p></div>
@@ -262,37 +253,38 @@
                         </div>
                     </div>
 
-                    <!-- HVAC / SMART CLIMATE -->
                     <div class="dash-card relative overflow-hidden">
                         <div class="flex justify-between items-start mb-2">
-                            <div><h3 class="font-bold text-slate-700">Έξυπνος Κλιματισμός</h3><p class="text-xs text-slate-500">Cabin: <span id="cabin-temp">24°C</span></p></div>
+                            <div><h3 class="font-bold text-slate-700">Έξυπνος Κλιματισμός</h3><p class="text-xs text-slate-500">Cabin: <span id="cabin-temp">24°C</span> | Ext: <span id="ext-temp" class="font-bold">32°C</span></p></div>
                             <i id="fan-icon" class="fa-solid fa-fan text-2xl text-blue-400 fa-spin" style="animation-duration: 3s;"></i>
                         </div>
                         
-                        <!-- Standard Controls -->
+                        <div class="flex gap-2 mb-3">
+                            <button onclick="driver.setSeason('summer')" id="btn-summer" class="flex-1 py-1 text-[10px] font-bold rounded bg-orange-100 text-orange-700 border border-orange-200">ΚΑΛΟΚΑΙΡΙ (32°C)</button>
+                            <button onclick="driver.setSeason('winter')" id="btn-winter" class="flex-1 py-1 text-[10px] font-bold rounded bg-slate-100 text-slate-500 border border-slate-200">ΧΕΙΜΩΝΑΣ (5°C)</button>
+                        </div>
+
                         <div class="flex items-center justify-between bg-slate-50 p-2 rounded-lg mb-3">
                             <button onclick="driver.adjustTemp(-1)" class="w-10 h-10 bg-white rounded shadow text-blue-500 hover:bg-blue-50 text-lg font-bold">-</button>
-                            <span id="target-temp" class="text-2xl font-bold text-slate-700">22°C</span>
+                            <span id="target-temp" class="text-2xl font-bold text-slate-700">24°C</span>
                             <button onclick="driver.adjustTemp(1)" class="w-10 h-10 bg-white rounded shadow text-red-500 hover:bg-red-50 text-lg font-bold">+</button>
                         </div>
 
-                        <!-- Eco Logic -->
                         <div class="bg-blue-50 rounded-lg p-3 border border-blue-100">
                             <h4 class="text-xs font-bold text-blue-800 mb-2 uppercase flex items-center gap-1"><i class="fa-solid fa-leaf"></i> Εξοικονομηση Ενεργειας</h4>
-                            <p class="text-[10px] text-slate-500 mb-2 leading-tight">Ο υπολογιστής διαχειρίζεται αυτόματα την ψύξη/θέρμανση για βέλτιστη απόδοση.</p>
+                            <p id="hvac-msg" class="text-[10px] text-slate-500 mb-2 leading-tight">Ρυθμίστε τη θερμοκρασία για οικονομία.</p>
                             
-                            <button id="btn-eco-ac" onclick="driver.toggleEcoMode()" class="w-full py-2 bg-white border border-blue-200 text-blue-600 text-xs font-bold rounded shadow-sm hover:bg-blue-100 transition flex justify-between px-3 items-center">
-                                <span><i class="fa-solid fa-power-off"></i> ECO Mode</span>
-                                <span id="eco-status">OFF</span>
+                            <button id="btn-hvac-power" onclick="driver.toggleHVAC()" class="w-full py-2 bg-blue-600 text-white border border-blue-600 text-xs font-bold rounded shadow-sm hover:bg-blue-700 transition flex justify-between px-3 items-center mb-2">
+                                <span><i class="fa-solid fa-power-off"></i> ΣΥΣΤΗΜΑ ON/OFF</span>
+                                <span id="hvac-status">ON</span>
                             </button>
                             
-                            <div id="energy-savings-display" class="hidden mt-2 text-center bg-emerald-100 text-emerald-800 text-xs font-bold p-1 rounded animate-pulse">
-                                Εξοικονόμηση: 0.0 kWh
+                            <div id="energy-savings-display" class="mt-2 text-center bg-emerald-100 text-emerald-800 text-xs font-bold p-1 rounded">
+                                Εξοικονόμηση: 0.00 kWh
                             </div>
                         </div>
                     </div>
 
-                    <!-- Roof & PV -->
                     <div class="dash-card bg-gradient-to-br from-slate-800 to-slate-900 text-white border-0">
                         <div class="flex justify-between items-start mb-4">
                             <div><h3 class="font-bold">Ενέργεια & Οροφή</h3><p class="text-[10px] text-slate-400">Soft PV Panels: <span class="text-emerald-400">ONLINE</span></p></div>
@@ -315,7 +307,6 @@
                 </div>
             </section>
 
-            <!-- TAB 5: VACUUM CLEANING -->
             <section id="view-vacuum" class="h-full hidden flex flex-col p-4 gap-4 overflow-hidden bg-slate-50 relative">
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
                     <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100"><div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Κατασταση</div><div id="vac-status-text" class="text-base font-bold text-slate-700 truncate">💤 Αναμονή</div></div>
@@ -363,7 +354,39 @@
 
         </main>
 
-        <!-- MODALS -->
+        <div id="help-modal" class="fixed inset-0 bg-slate-900/60 z-[110] hidden flex items-center justify-center backdrop-blur-sm">
+             <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-lg w-full mx-4 relative max-h-[80vh] overflow-y-auto">
+                 <button onclick="document.getElementById('help-modal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-800"><i class="fa-solid fa-xmark fa-xl"></i></button>
+                 <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-circle-info text-blue-600"></i> Οδηγίες Χρήσης (On-line Help)</h2>
+                 <div class="space-y-4 text-sm text-slate-600">
+                     <div>
+                         <h3 class="font-bold text-slate-800">1. Περιήγηση & Θέα</h3>
+                         <p>Δείτε τη διαδρομή μέσω κάμερας και λάβετε πληροφορίες για αξιοθέατα με δυνατότητα ανάγνωσης (Text-to-Speech).</p>
+                     </div>
+                     <div>
+                         <h3 class="font-bold text-slate-800">2. Παραγγελίες (Delivery)</h3>
+                         <p>Παραγγείλετε φαγητό/καφέ από συνεργαζόμενα καταστήματα. Η παραλαβή γίνεται στην επόμενη καθορισμένη στάση. Πληρωμή μόνο με κάρτα.</p>
+                     </div>
+                     <div>
+                         <h3 class="font-bold text-slate-800">3. Gemini AI Assistant</h3>
+                         <p>Ρωτήστε τον ψηφιακό βοηθό για οτιδήποτε αφορά την πόλη, τον καιρό ή τη διαδρομή.</p>
+                     </div>
+                     <div>
+                         <h3 class="font-bold text-slate-800">4. Walking Mode</h3>
+                         <p>Χρησιμοποιήστε το όταν κατεβαίνετε από το λεωφορείο για να πλοηγηθείτε στην περιοχή.</p>
+                     </div>
+                     <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                         <h3 class="font-bold text-blue-800 text-xs uppercase">Για το προσωπικο (Κωδικος: 12345)</h3>
+                         <ul class="list-disc pl-4 mt-1 space-y-1">
+                             <li>Έλεγχος Κλιματισμού & Eco Mode</li>
+                             <li>Διαχείριση Οροφής & Φωτοβολταϊκών</li>
+                             <li>Ενεργοποίηση Ρομπότ Καθαρισμού</li>
+                         </ul>
+                     </div>
+                 </div>
+             </div>
+        </div>
+
         <div id="walking-mode-modal" class="fixed inset-0 bg-slate-900 z-[90] hidden flex flex-col">
             <div class="bg-slate-800 p-4 text-white flex justify-between items-center shadow-lg shrink-0 border-b border-slate-700">
                 <div>
@@ -421,11 +444,58 @@
         
         <div id="pickup-modal" class="fixed inset-0 bg-slate-900/40 z-[70] hidden flex items-center justify-center backdrop-blur-sm"><div class="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4"><h3 class="text-lg font-bold text-center mb-4">Επιλογή Στάσης Παραλαβής</h3><div id="pickup-options" class="space-y-2 mb-4 max-h-60 overflow-y-auto"></div><button onclick="document.getElementById('pickup-modal').classList.add('hidden')" class="w-full bg-slate-100 py-2 rounded-xl text-sm font-bold text-slate-500">Ακύρωση</button></div></div>
         
+        <div id="pay-modal" class="fixed inset-0 bg-slate-900/60 z-[75] hidden flex items-center justify-center backdrop-blur-sm">
+            <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 animate-pop">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold">Πληρωμή με Κάρτα</h3>
+                    <i class="fa-brands fa-cc-visa text-3xl text-blue-600"></i>
+                </div>
+                <div class="space-y-3">
+                     <div>
+                         <label class="text-xs font-bold text-slate-500 uppercase">Αριθμος Καρτας</label>
+                         <input type="text" placeholder="0000 0000 0000 0000" class="w-full border border-slate-200 rounded-lg p-2 font-mono" disabled value="**** **** **** 4242">
+                     </div>
+                     <div class="flex gap-2">
+                         <div>
+                            <label class="text-xs font-bold text-slate-500 uppercase">HΜ. ΛΗΞΗΣ</label>
+                            <input type="text" placeholder="MM/YY" class="w-full border border-slate-200 rounded-lg p-2 font-mono" disabled value="12/28">
+                         </div>
+                         <div>
+                            <label class="text-xs font-bold text-slate-500 uppercase">CVC</label>
+                            <input type="text" placeholder="123" class="w-full border border-slate-200 rounded-lg p-2 font-mono" disabled value="***">
+                         </div>
+                     </div>
+                </div>
+                <div class="mt-6 flex gap-2">
+                    <button onclick="document.getElementById('pay-modal').classList.add('hidden')" class="flex-1 bg-slate-100 py-2 rounded-xl text-sm font-bold text-slate-500">Ακύρωση</button>
+                    <button onclick="app.processPayment()" class="flex-[2] bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2">
+                        <i class="fa-solid fa-lock"></i> Πληρωμή <span id="pay-amount"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div id="toast-container" class="fixed top-20 right-4 z-[100] flex flex-col gap-2 pointer-events-none"></div>
 
     </div>
 
-    <script>
+    <script type="module">
+        import { GoogleGenerativeAI } from "@google/generative-ai";
+
+        // ============================================
+        // 🔑 ΡΥΘΜΙΣΗ GEMINI AI KEY 🔑
+        // ============================================
+        const GEMINI_API_KEY = ""; 
+        
+        let genAI = null;
+        let model = null;
+
+        if (GEMINI_API_KEY) {
+            genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+            model = genAI.getGenerativeModel({ model: "gemini-fast"});
+        }
+
+        // --- GLOBAL APP LOGIC ---
         // ROUTE CONFIGURATION
         const ROUTE_STOPS = [
             { name: "Σύνταγμα", pct: 0, coords: "37.9755,23.7348", desc: "Η καρδιά της Αθήνας. Βουλή, Ερμού, Άγνωστος Στρατιώτης." },
@@ -526,8 +596,14 @@
                 cart: [], activeZones: [], isCleaning: false, currentShop: null, 
                 busPosition: 0, binLevel: 0, cleaningTimer: null, timeRemaining: 0, 
                 foundValuables: [], currentFilter: 'all', userRole: 'guest', 
-                tempProduct: null, driverTemp: 22, roofOpen: false, pinBuffer: "", 
-                ecoMode: false, energySaved: 0
+                tempProduct: null, driverTemp: 24, roofOpen: false, pinBuffer: "", 
+                energySaved: 0, pendingPickupStop: null, 
+                
+                // New States
+                isStopped: false, // For bus stop waiting
+                externalTemp: 32, // Summer default
+                season: 'summer', // summer | winter
+                hvacActive: true
             },
 
             // --- INITIALIZATION ---
@@ -538,6 +614,13 @@
                 this.startBusSimulation();
                 this.startClock();
                 this.updateCartUI();
+                
+                // Expose app to window for HTML onclicks
+                window.app = this;
+            },
+            
+            showHelp: function() {
+                document.getElementById('help-modal').classList.remove('hidden');
             },
 
             // --- LOGIN LOGIC ---
@@ -556,8 +639,7 @@
             addPin: function(num) {
                 if(this.state.pinBuffer.length < 5) {
                     this.state.pinBuffer += num;
-                    document.getElementById('pin-input').value = this.state.pinBuffer; // Show actual numbers or dots?
-                    // To act like password input, stick to dots via CSS input type="password" but JS sets value
+                    document.getElementById('pin-input').value = this.state.pinBuffer;
                 }
             },
 
@@ -605,9 +687,24 @@
             // --- BUS SIMULATION ---
             startBusSimulation: function() {
                 setInterval(() => {
-                    if (this.state.busPosition >= 100) this.state.busPosition = 0;
-                    else this.state.busPosition += CONFIG.busSpeed;
-                    
+                    // STOP LOGIC: Check if close to a stop
+                    if (!this.state.isStopped) {
+                        const nearestStop = ROUTE_STOPS.find(s => Math.abs(s.pct - this.state.busPosition) < 0.2);
+                        // Prevent stopping repeatedly at the same spot without moving
+                        if (nearestStop && !this.state.lastStopTriggered === nearestStop.name) {
+                            this.triggerStopSequence(nearestStop);
+                        } else {
+                            // Move Bus
+                            if (this.state.busPosition >= 100) this.state.busPosition = 0;
+                            else this.state.busPosition += CONFIG.busSpeed;
+
+                            // Reset stop trigger when we move away
+                            if (nearestStop === undefined) {
+                                this.state.lastStopTriggered = null;
+                            }
+                        }
+                    }
+
                     localStorage.setItem('smart_bus_pos_v2', this.state.busPosition);
 
                     this.updateRouteVisuals();
@@ -616,9 +713,32 @@
                     
                     if (this.state.userRole === 'driver') {
                         this.checkDriverFatigue();
-                        if(this.state.ecoMode) this.updateEnergySavings();
+                        this.updateEnergyLogic();
                     }
                     
+                }, 1000);
+            },
+
+            triggerStopSequence: function(stop) {
+                this.state.isStopped = true;
+                this.state.lastStopTriggered = stop.name;
+                
+                // UI Updates
+                document.getElementById('bus-speed-display').innerText = "0 km/h";
+                document.getElementById('bus-speed-display').className = "hidden md:block text-xs font-bold bg-red-100 text-red-600 px-2 py-1 rounded animate-pulse";
+                this.showToast(`Στάση: ${stop.name} - Επιβίβαση/Αποβίβαση...`, 'fa-door-open', 'bg-blue-600');
+                
+                // Cooldown 5s
+                let countdown = 5;
+                const stopInterval = setInterval(() => {
+                    countdown--;
+                    if(countdown <= 0) {
+                        clearInterval(stopInterval);
+                        this.state.isStopped = false;
+                        document.getElementById('bus-speed-display').innerText = "50 km/h";
+                        document.getElementById('bus-speed-display').className = "hidden md:block text-xs font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded";
+                        this.showToast(`Αναχώρηση από ${stop.name}`, 'fa-bus', 'bg-slate-600');
+                    }
                 }, 1000);
             },
 
@@ -668,6 +788,7 @@
                     const busPos = this.state.busPosition;
                     const stopPos = shop.deliverTo;
 
+                    // Logic: Can only order if bus hasn't passed the delivery stop (with some buffer)
                     if (busPos > stopPos + 2) {
                         isUnavailable = true;
                         statusBadge = `<div class="status-tag absolute bottom-2 right-2 bg-slate-200 text-slate-500 text-[10px] font-bold px-2 py-1 rounded-full">ΜΗ ΔΙΑΘΕΣΙΜΟ</div>`;
@@ -781,7 +902,7 @@
                 const validStops = ROUTE_STOPS.filter(s => s.pct > this.state.busPosition + 5);
                 const list = document.getElementById('pickup-options');
                 list.innerHTML = validStops.map(s => 
-                    `<button onclick="app.finishOrder('${s.name}')" class="w-full text-left px-4 py-3 rounded-xl border border-slate-100 hover:bg-blue-50 hover:border-blue-200 transition flex justify-between items-center group">
+                    `<button onclick="app.selectPickup('${s.name}')" class="w-full text-left px-4 py-3 rounded-xl border border-slate-100 hover:bg-blue-50 hover:border-blue-200 transition flex justify-between items-center group">
                         <span class="font-bold text-slate-700 group-hover:text-blue-700">${s.name}</span>
                         <i class="fa-solid fa-location-dot text-slate-300 group-hover:text-blue-500"></i>
                     </button>`
@@ -789,12 +910,26 @@
                 document.getElementById('pickup-modal').classList.remove('hidden');
             },
 
-            finishOrder: function(stopName) {
+            selectPickup: function(stopName) {
+                this.state.pendingPickupStop = stopName;
                 document.getElementById('pickup-modal').classList.add('hidden');
-                this.state.cart = []; 
-                this.updateCartUI(); 
-                this.closeMenu();
-                this.showToast(`Παραγγελία εστάλη για: ${stopName}`, 'fa-check-circle', 'bg-emerald-600');
+                // Open Payment Modal
+                const total = document.getElementById('cart-total').innerText;
+                document.getElementById('pay-amount').innerText = total;
+                document.getElementById('pay-modal').classList.remove('hidden');
+            },
+
+            processPayment: function() {
+                document.getElementById('pay-modal').classList.add('hidden');
+                // Simulate processing delay
+                this.showToast('Επεξεργασία πληρωμής...', 'fa-circle-notch fa-spin', 'bg-blue-500');
+                
+                setTimeout(() => {
+                    this.state.cart = []; 
+                    this.updateCartUI(); 
+                    this.closeMenu();
+                    this.showToast(`Επιτυχής Πληρωμή! Παραλαβή στη στάση: ${this.state.pendingPickupStop}`, 'fa-check-circle', 'bg-emerald-600');
+                }, 1500);
             },
 
             // --- PASSENGER: WALKING MODE / MAP ---
@@ -818,6 +953,18 @@
                 }
             },
 
+            speakLandmark: function() {
+                const text = document.getElementById('landmark-desc').innerText;
+                if(!text) return;
+                
+                // Web Speech API
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'el-GR';
+                window.speechSynthesis.speak(utterance);
+                
+                this.showToast("Ανάγνωση κειμένου...", "fa-volume-high", "bg-blue-500");
+            },
+
             activateWalkingMode: function() {
                 document.getElementById('walking-mode-modal').classList.remove('hidden');
                 this.checkLandmarks();
@@ -832,49 +979,76 @@
                 document.getElementById('walking-mode-modal').classList.add('hidden');
             },
 
-            // --- GEMINI AI ASSISTANT (SIMULATED) ---
-            sendChatMessage: function(msg = null) {
+            // --- GEMINI AI ASSISTANT (INTEGRATED) ---
+            sendChatMessage: async function(msg = null) {
                 const input = document.getElementById('chat-input');
                 const text = msg || input.value;
                 if(!text) return;
 
-                // User Msg
+                // User Msg UI
                 const history = document.getElementById('chat-history');
                 history.innerHTML += `<div class="chat-msg chat-user animate-slide">${text}</div>`;
                 input.value = "";
                 history.scrollTop = history.scrollHeight;
 
-                // Loading...
+                // Loading UI
                 const loadingId = 'loading-' + Date.now();
                 history.innerHTML += `<div id="${loadingId}" class="chat-msg chat-ai"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>`;
                 history.scrollTop = history.scrollHeight;
 
-                // Simulate AI Response Time
-                setTimeout(() => {
+                try {
+                    let responseText = "";
+                    if (model) {
+                         // REAL AI CALL
+                         const prompt = `Είσαι ένας έξυπνος βοηθός σε ένα τουριστικό λεωφορείο στην Αθήνα. 
+                         Απάντησε σύντομα και φιλικά στα ελληνικά. 
+                         Ερώτηση χρήστη: ${text}`;
+                         
+                         const result = await model.generateContent(prompt);
+                         const response = await result.response;
+                         responseText = response.text();
+                    } else {
+                        // FALLBACK SIMULATION (If no API Key)
+                        await new Promise(r => setTimeout(r, 1500));
+                        responseText = this.getSimulatedResponse(text);
+                    }
+
                     document.getElementById(loadingId).remove();
-                    const response = this.getAIResponse(text);
-                    history.innerHTML += `<div class="chat-msg chat-ai animate-slide"><div class="font-bold text-xs text-purple-600 mb-1">Gemini AI</div>${response}</div>`;
+                    history.innerHTML += `<div class="chat-msg chat-ai animate-slide"><div class="font-bold text-xs text-purple-600 mb-1">Gemini AI</div>${this.formatText(responseText)}</div>`;
                     history.scrollTop = history.scrollHeight;
-                }, 1500);
+
+                } catch (error) {
+                    console.error(error);
+                    document.getElementById(loadingId).remove();
+                    history.innerHTML += `<div class="chat-msg chat-ai text-red-500 text-xs">Πρόβλημα σύνδεσης API (CORS/Key Error).<br>Συμβουλή: Βεβαιωθείτε ότι το αρχείο τρέχει σε server και όχι τοπικά, ή ότι το κλειδί επιτρέπει localhost.</div>`;
+                }
             },
 
-            getAIResponse: function(text) {
+            formatText: function(text) {
+                return text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+            },
+
+            getSimulatedResponse: function(text) {
                 const lower = text.toLowerCase();
-                if(lower.includes("καιρ")) return "Ο καιρός στην Αθήνα σήμερα είναι ηλιόλουστος με 24°C. Ιδανική μέρα για περιήγηση!";
-                if(lower.includes("ακρόπολη")) return "Η Ακρόπολη είναι το σημαντικότερο αρχαίο μνημείο του δυτικού κόσμου. Σας προτείνω να κατεβείτε στη στάση 'Ακρόπολη' για να επισκεφθείτε τον Παρθενώνα.";
-                if(lower.includes("φαγητό") || lower.includes("πεινάω")) return "Μπορείτε να παραγγείλετε φαγητό από το Tab 'Delivery'! Συνεργαζόμαστε με τα καλύτερα καταστήματα της διαδρομής.";
-                if(lower.includes("στάση") || lower.includes("που είμαστε")) return `Η επόμενη στάση είναι: ${document.getElementById('landmark-name').innerText}.`;
-                if(lower.includes("προσφορά")) return "Σήμερα έχουμε 20% έκπτωση στο 'Juice & Green' για όλους τους επιβάτες!";
-                return "Είμαι εδώ για να βοηθήσω! Μπορείτε να με ρωτήσετε για τα αξιοθέατα, τον καιρό ή τις υπηρεσίες του λεωφορείου.";
+                if(lower.includes("καιρ")) return "Ο καιρός στην Αθήνα σήμερα είναι ηλιόλουστος με 24°C. Ιδανική μέρα για περιήγηση! (Simulated)";
+                if(lower.includes("ακρόπολη")) return "Η Ακρόπολη είναι το σημαντικότερο αρχαίο μνημείο του δυτικού κόσμου. (Simulated)";
+                return "Δεν έχω ρυθμισμένο API Key, αλλά είμαι εδώ για να βοηθήσω! (Simulated Response)";
             },
 
-            // --- DRIVER UTILS ---
+            // --- DRIVER UTILS & HVAC LOGIC ---
             checkDriverFatigue: function() {
-                if (Math.random() < 0.01) { 
+                if (Math.random() < 0.005) { // Slightly lowered probability
                     const box = document.getElementById('driver-alert-box');
                     box.classList.remove('bg-slate-100', 'text-slate-500');
                     box.classList.add('bg-red-100', 'text-red-700', 'border-red-200', 'alert-flash');
+                    // Text required by assignment
                     box.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-xl mb-1 block"></i> Σκεφτείτε μήπως θέλετε καφέ`;
+                    
+                    // TTS for driver warning
+                    const utterance = new SpeechSynthesisUtterance("Προσοχή. Σκεφτείτε μήπως θέλετε καφέ.");
+                    utterance.lang = "el-GR";
+                    window.speechSynthesis.speak(utterance);
+
                     setTimeout(() => {
                         box.classList.add('bg-slate-100', 'text-slate-500');
                         box.classList.remove('bg-red-100', 'text-red-700', 'border-red-200', 'alert-flash');
@@ -882,14 +1056,95 @@
                     }, 5000);
                 }
             },
+            
+            updateEnergyLogic: function() {
+                // If HVAC is OFF or Optimized, increase saved energy
+                let savingRate = 0;
+                
+                // HVAC OFF = Max Savings
+                if (!this.state.hvacActive) {
+                    savingRate = 0.01;
+                } else {
+                    // Logic: Saving based on season adjustments
+                    if (this.state.season === 'summer') {
+                        // Summer: Raising temp saves energy (Target > 24)
+                        if (this.state.driverTemp > 24) savingRate = 0.005;
+                    } else {
+                        // Winter: Lowering temp saves energy (Target < 22)
+                        if (this.state.driverTemp < 22) savingRate = 0.005;
+                    }
+                }
+                
+                if (savingRate > 0) {
+                    this.state.energySaved += savingRate;
+                    document.getElementById('energy-savings-display').innerText = `Εξοικονόμηση: ${this.state.energySaved.toFixed(3)} kWh`;
+                    document.getElementById('energy-savings-display').classList.add('animate-pulse');
+                } else {
+                    document.getElementById('energy-savings-display').classList.remove('animate-pulse');
+                }
+            },
 
             driverUtils: {
                 adjustTemp: function(d) { 
                     app.state.driverTemp += d; 
                     document.getElementById('target-temp').innerText = app.state.driverTemp + "°C"; 
-                    app.state.ecoMode = false; // Manual override disables eco
-                    app.updateEcoUI();
+                    
+                    // Check logic based on season for feedback
+                    const msg = document.getElementById('hvac-msg');
+                    
+                    if (app.state.season === 'summer' && app.state.driverTemp > 24) {
+                        msg.innerText = "Αύξηση θερμοκρασίας (Καλοκαίρι) -> Εξοικονόμηση Ενέργειας!";
+                        msg.className = "text-[10px] text-emerald-600 font-bold mb-2 leading-tight";
+                    } else if (app.state.season === 'winter' && app.state.driverTemp < 22) {
+                        msg.innerText = "Μείωση θερμοκρασίας (Χειμώνας) -> Εξοικονόμηση Ενέργειας!";
+                        msg.className = "text-[10px] text-emerald-600 font-bold mb-2 leading-tight";
+                    } else {
+                         msg.innerText = "Κανονική λειτουργία.";
+                         msg.className = "text-[10px] text-slate-500 mb-2 leading-tight";
+                    }
                 },
+                
+                setSeason: function(s) {
+                    app.state.season = s;
+                    if (s === 'summer') {
+                        app.state.externalTemp = 32;
+                        document.getElementById('btn-summer').className = "flex-1 py-1 text-[10px] font-bold rounded bg-orange-100 text-orange-700 border border-orange-200";
+                        document.getElementById('btn-winter').className = "flex-1 py-1 text-[10px] font-bold rounded bg-slate-100 text-slate-500 border border-slate-200";
+                    } else {
+                        app.state.externalTemp = 5;
+                        document.getElementById('btn-winter').className = "flex-1 py-1 text-[10px] font-bold rounded bg-blue-100 text-blue-700 border border-blue-200";
+                        document.getElementById('btn-summer').className = "flex-1 py-1 text-[10px] font-bold rounded bg-slate-100 text-slate-500 border border-slate-200";
+                    }
+                    document.getElementById('ext-temp').innerText = app.state.externalTemp + "°C";
+                    app.showToast(`Εξωτερικές Συνθήκες: ${s === 'summer' ? 'Καλοκαίρι' : 'Χειμώνας'}`, 'fa-cloud-sun', 'bg-slate-600');
+                },
+
+                toggleHVAC: function() {
+                    app.state.hvacActive = !app.state.hvacActive;
+                    const btn = document.getElementById('btn-hvac-power');
+                    const status = document.getElementById('hvac-status');
+                    const msg = document.getElementById('hvac-msg');
+                    const icon = document.getElementById('fan-icon');
+
+                    if (app.state.hvacActive) {
+                        btn.classList.replace('bg-slate-200', 'bg-blue-600');
+                        btn.classList.replace('text-slate-600', 'text-white');
+                        btn.classList.replace('border-slate-300', 'border-blue-600');
+                        status.innerText = "ON";
+                        icon.classList.add('fa-spin');
+                        msg.innerText = "Σύστημα Ενεργό.";
+                    } else {
+                        btn.classList.replace('bg-blue-600', 'bg-slate-200');
+                        btn.classList.replace('text-white', 'text-slate-600');
+                        btn.classList.replace('border-blue-600', 'border-slate-300');
+                        status.innerText = "OFF";
+                        icon.classList.remove('fa-spin');
+                        msg.innerText = "Σύστημα Ανενεργό -> Μέγιστη Εξοικονόμηση!";
+                        msg.className = "text-[10px] text-emerald-600 font-bold mb-2 leading-tight";
+                        app.showToast('Κλιματισμός OFF: Εξοικονόμηση Ενέργειας', 'fa-leaf', 'bg-emerald-600');
+                    }
+                },
+
                 toggleRoof: function() {
                     app.state.roofOpen = !app.state.roofOpen;
                     const btn = document.getElementById('btn-roof');
@@ -902,43 +1157,7 @@
                         btn.className = "w-full py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2";
                         app.showToast("Η οροφή έκλεισε", "fa-shield", "bg-slate-600");
                     }
-                },
-                toggleEcoMode: function() {
-                    app.state.ecoMode = !app.state.ecoMode;
-                    if(app.state.ecoMode) {
-                        // AI Takes over logic
-                        app.state.driverTemp = 24; // Optimal eco temp
-                        document.getElementById('target-temp').innerText = "24°C";
-                        app.showToast("Eco Mode Ενεργό: Βελτιστοποίηση...", "fa-leaf", "bg-emerald-500");
-                    } else {
-                        app.showToast("Eco Mode Ανενεργό", "fa-power-off", "bg-slate-500");
-                    }
-                    app.updateEcoUI();
                 }
-            },
-
-            updateEcoUI: function() {
-                const btn = document.getElementById('btn-eco-ac');
-                const disp = document.getElementById('energy-savings-display');
-                if(this.state.ecoMode) {
-                    btn.classList.add('bg-blue-50', 'border-blue-400');
-                    btn.classList.remove('bg-white', 'border-blue-200');
-                    document.getElementById('eco-status').innerText = "ON";
-                    document.getElementById('eco-status').className = "text-emerald-600 font-bold";
-                    disp.classList.remove('hidden');
-                } else {
-                    btn.classList.remove('bg-blue-50', 'border-blue-400');
-                    btn.classList.add('bg-white', 'border-blue-200');
-                    document.getElementById('eco-status').innerText = "OFF";
-                    document.getElementById('eco-status').className = "text-slate-400";
-                    disp.classList.add('hidden');
-                }
-            },
-
-            updateEnergySavings: function() {
-                // Simulate accumulating savings
-                this.state.energySaved += 0.005;
-                document.getElementById('energy-savings-display').innerText = `Εξοικονόμηση: ${this.state.energySaved.toFixed(3)} kWh`;
             },
 
 
